@@ -1,0 +1,2 @@
+lib/libzfs.so.*	usr/lib
+lib/libzfs_core.so.*	usr/lib

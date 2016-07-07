@@ -1,0 +1,126 @@
+#!/usr/bin/make -f
+
+CHMOD ?= chmod
+INSTALL ?= install
+MAKE ?= make
+
+META_NAME := $(shell awk '$$1 == "Name:" { print $$2; }' META)
+META_VERSION := $(shell awk '$$1 == "Version:" { print $$2; }' META)
+META_DISTDIR := $(CURDIR)/$(META_NAME)-$(META_VERSION)/
+
+%:
+	dh $@ --with autoreconf,dkms
+
+override_dh_auto_configure:
+	@# Build the userland, but don't build the kernel modules.
+	dh_auto_configure -- \
+	  --bindir=/bin \
+	  --sbindir=/sbin \
+	  --libdir=/lib \
+	  --with-udevdir=/lib/udev \
+	  --with-config=user
+
+override_dh_auto_test:
+	# The dh_auto_test rule is disabled because
+	# `make check` cannot run in an unprivileged build environment.
+
+override_dh_auto_install:
+	@# Install the utilities.
+	$(MAKE) install DESTDIR='$(CURDIR)/debian/tmp'
+
+	@# Zed has dependencies outside of the system root.
+	$(INSTALL) -d '$(CURDIR)/debian/tmp/usr/sbin/'
+	mv '$(CURDIR)/debian/tmp/sbin/zed' '$(CURDIR)/debian/tmp/usr/sbin/zed'
+
+	@# Get a bare copy of the source code for DKMS.
+	@# This creates the $(META_DISTDIR)/ tree.
+	$(MAKE) distdir
+
+	@# Delete components that are not required to build the kernel modules.
+	@# This prevents several lintian complaints, discourages users from
+	@# running `make install` in /usr/src, and reduces the installation
+	@# size by one third. The printf creates a dummy automake file.
+	umask 0111 && \
+	cd '$(META_DISTDIR)' && \
+	for ii in $$(find cmd dracut etc lib man rpm scripts udev -type f); do \
+	  rm "$$ii"; \
+	  test "$$ii" != "$${ii%.in}" && printf '%%:\n\t#\n' >"$$ii"; \
+	  true; \
+	done
+
+	@# This shunt allows DKMS to copy the Module.symvers and zfs_config.h
+	@# files into the ${dkms_tree} area through the POST_INSTALL directive.
+	printf '#!/bin/sh\ncp "$$@"\n' >'$(META_DISTDIR)/cp'
+	$(CHMOD) 755 '$(META_DISTDIR)/cp'
+
+	@# Install the DKMS source directly, avoiding dh_install.
+	$(INSTALL) -d '$(CURDIR)/debian/zfs-dkms/usr/src/'
+	mv '$(META_DISTDIR)' '$(CURDIR)/debian/zfs-dkms/usr/src/'
+
+override_dh_dkms:
+	dh_dkms -V
+
+override_dh_fixperms:
+	dh_fixperms
+
+	@# Prevent execute bits from being stripped by the Launchpad pbuilder.
+	$(CHMOD) a+x '$(CURDIR)'/debian/zfsutils-linux/usr/share/initramfs-tools/hooks/* \
+		'$(CURDIR)'/debian/zfsutils-linux/usr/lib/zfs-linux/scrub
+	if [ -d '$(CURDIR)'/debian/zfs-initramfs/usr/share/initramfs-tools/hooks ]; then \
+		$(CHMOD) a+x '$(CURDIR)'/debian/zfs-initramfs/usr/share/initramfs-tools/hooks/*; \
+	fi
+
+override_dh_install:
+	@# Exclude the upstream /usr/lib/udev/rules.d files.
+	dh_install -X/rules.d/
+
+	$(INSTALL) -d '$(CURDIR)/debian/zfs-initramfs/lib/udev/rules.d'
+	$(INSTALL) -m 644 '$(CURDIR)/debian/tree/zfs-initramfs/lib/udev/rules.d'/* \
+		'$(CURDIR)/debian/zfs-initramfs/lib/udev/rules.d/'
+
+	@# Ensure that /etc/zfs is in the zfsutils package
+	@# because git has difficulty tracking empty directories.
+	$(INSTALL) -d '$(CURDIR)/debian/zfsutils-linux/etc/zfs/'
+	$(INSTALL) -d '$(CURDIR)/debian/libzfslinux-dev/usr/lib/zfs-linux/'
+
+
+	# No need to ship .la files
+	find . -name lib*.la -delete
+
+override_dh_installdocs:
+	dh_installdocs --link-doc=zfs-doc
+
+override_dh_installinit:
+	# zfs.target isn't automatically handled by dh_systemd(?)
+	dh_systemd_enable -p zfsutils-linux zfs.target
+
+	@# Install debian/zfs-zed.zed.upstart as /etc/init/zed.conf
+	@# and debian/zfs-zed.zed.service as /lib/systemd/system/zed.service
+	dh_installinit --name=zed
+
+	@# Install debian/zfsutils.zfs.default as /etc/default/zfs.
+	dh_installinit --name=zfs
+
+	@# Install debian/zfsutils.zpool-import.upstart as /etc/init/zpool-import.conf.
+	dh_installinit --name=zpool-import --no-restart-on-upgrade --no-start
+
+	@# Ubuntu runs nfs-kernel-server at sysv sequence 20 80 and iscsitarget at 20 20.
+	dh_installinit --name=zfs-share --no-restart-on-upgrade --no-start -- defaults 25 15
+
+	@# Only for systemd:
+	dh_installinit --name=zfs-import-cache
+	dh_installinit --name=zfs-import-scan
+	dh_installinit --name=zfs-mount
+	dh_systemd_start
+
+override_dh_installudev:
+	dh_installudev --name=zvol --priority=60
+	dh_installudev --name=vdev --priority=69
+
+override_dh_strip:
+	dh_strip -plibnvpair1linux --dbg-package=libnvpair1linux-dbg
+	dh_strip -plibuutil1linux --dbg-package=libuutil1linux-dbg
+	dh_strip -plibzfs2linux --dbg-package=libzfs2linux-dbg
+	dh_strip -plibzpool2linux --dbg-package=libzpool2linux-dbg
+	dh_strip -pzfs-zed --dbg-package=zfs-zed-dbg
+	dh_strip -pzfsutils-linux --dbg-package=zfsutils-linux-dbg

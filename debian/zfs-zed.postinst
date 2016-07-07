@@ -1,0 +1,28 @@
+#!/bin/sh
+set -e
+
+installed_dir=/usr/lib/zfs-linux/zfs/zed.d
+enabled_dir=/etc/zfs/zed.d
+
+# On a fresh install, enable most scriptlets.
+if [ -z "$2" ]
+then
+	for scriptlet in "$installed_dir"/*
+	do
+		name=$(basename "$scriptlet")
+		case "$name" in
+			all-debug.sh)
+				continue
+				;;
+			generic-notify.sh)
+				continue
+				;;
+		esac
+		if ! [ -e "$enabled_dir/$name" ]
+		then
+			ln -s "$scriptlet" "$enabled_dir/"
+		fi
+        done
+fi
+
+#DEBHELPER#
