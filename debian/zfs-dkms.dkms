@@ -55,7 +55,7 @@ REMAKE_INITRD="$(
     echo -n no
   fi
 )"
-MAKE[0]="make"
+MAKE[0]="make -j9"
 STRIP[0]="$(
   [[ -r /etc/default/zfs ]] \
   && source /etc/default/zfs \
