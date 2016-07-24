@@ -25,7 +25,7 @@
  * Copyright 2015, OmniTI Computer Consulting, Inc. All rights reserved.
  * Portions Copyright 2012 Pawel Jakub Dawidek <pawel@dawidek.net>
  * Copyright (c) 2012, Joyent, Inc. All rights reserved.
- * Copyright 2015 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2016 Nexenta Systems, Inc.  All rights reserved.
  * Copyright (c) 2014, Joyent, Inc. All rights reserved.
  * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
  * Copyright (c) 2013 by Saso Kiselkov. All rights reserved.
@@ -1393,9 +1393,9 @@ get_zfs_sb(const char *dsname, zfs_sb_t **zsbp)
 
 	mutex_enter(&os->os_user_ptr_lock);
 	*zsbp = dmu_objset_get_user(os);
-	if (*zsbp && (*zsbp)->z_sb) {
-		atomic_inc(&((*zsbp)->z_sb->s_active));
-	} else {
+	/* bump s_active only when non-zero to prevent umount race */
+	if (*zsbp == NULL || (*zsbp)->z_sb == NULL ||
+	    !atomic_inc_not_zero(&((*zsbp)->z_sb->s_active))) {
 		error = SET_ERROR(ESRCH);
 	}
 	mutex_exit(&os->os_user_ptr_lock);
@@ -3568,10 +3568,37 @@ zfs_ioc_destroy(zfs_cmd_t *zc)
 			return (err);
 	}
 
-	if (strchr(zc->zc_name, '@'))
+	if (strchr(zc->zc_name, '@')) {
 		err = dsl_destroy_snapshot(zc->zc_name, zc->zc_defer_destroy);
-	else
+	} else {
 		err = dsl_destroy_head(zc->zc_name);
+		if (err == EEXIST) {
+			/*
+			 * It is possible that the given DS may have
+			 * hidden child (%recv) datasets - "leftovers"
+			 * resulting from the previously interrupted
+			 * 'zfs receive'.
+			 *
+			 * 6 extra bytes for /%recv
+			 */
+			char namebuf[ZFS_MAX_DATASET_NAME_LEN + 6];
+
+			(void) snprintf(namebuf, sizeof (namebuf),
+			    "%s/%s", zc->zc_name, recv_clone_name);
+
+			/*
+			 * Try to remove the hidden child (%recv) and after
+			 * that try to remove the target dataset.
+			 * If the hidden child (%recv) does not exist
+			 * the original error (EEXIST) will be returned
+			 */
+			err = dsl_destroy_head(namebuf);
+			if (err == 0)
+				err = dsl_destroy_head(zc->zc_name);
+			else if (err == ENOENT)
+				err = EEXIST;
+		}
+	}
 
 	return (err);
 }
@@ -4054,8 +4081,8 @@ static boolean_t zfs_ioc_recv_inject_err;
 #endif
 
 /*
- * On failure the 'errors' nvlist may be allocated and will contain a
- * descriptions of the failures.  It's the callers responsibilty to free.
+ * nvlist 'errors' is always allocated. It will contain descriptions of
+ * encountered errors, if any. It's the callers responsibility to free.
  */
 static int
 zfs_ioc_recv_impl(char *tofs, char *tosnap, char *origin,
@@ -4072,7 +4099,10 @@ zfs_ioc_recv_impl(char *tofs, char *tosnap, char *origin,
 	boolean_t first_recvd_props = B_FALSE;
 	file_t *input_fp;
 
-	*errors = NULL;
+	*read_bytes = 0;
+	*errflags = 0;
+	*errors = fnvlist_alloc();
+
 	input_fp = getf(input_fd);
 	if (input_fp == NULL)
 		return (SET_ERROR(EBADF));
@@ -4081,10 +4111,6 @@ zfs_ioc_recv_impl(char *tofs, char *tosnap, char *origin,
 	    begin_record, force, resumable, origin, &drc);
 	if (error != 0)
 		goto out;
-
-	*read_bytes = 0;
-	*errflags = 0;
-	*errors = fnvlist_alloc();
 
 	/*
 	 * Set properties before we receive the stream so that they are applied

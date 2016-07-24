@@ -47,10 +47,10 @@
 #define	VR1(r...) VR1_(r)
 #define	VR2(r...) VR2_(r, 1)
 #define	VR3(r...) VR3_(r, 1, 2)
-#define	VR4(r...) VR4_(r, 1)
-#define	VR5(r...) VR5_(r, 1, 2)
-#define	VR6(r...) VR6_(r, 1, 2, 3)
-#define	VR7(r...) VR7_(r, 1, 2, 3, 4)
+#define	VR4(r...) VR4_(r, 1, 2)
+#define	VR5(r...) VR5_(r, 1, 2, 3)
+#define	VR6(r...) VR6_(r, 1, 2, 3, 4)
+#define	VR7(r...) VR7_(r, 1, 2, 3, 4, 5)
 
 #define	R_01(REG1, REG2, ...) REG1, REG2
 #define	_R_23(_0, _1, REG2, REG3, ...) REG2, REG3
@@ -377,23 +377,23 @@ typedef struct v {
 #include <sys/vdev_raidz_impl.h>
 #include "vdev_raidz_math_impl.h"
 
-DEFINE_GEN_METHODS(sse);
-DEFINE_REC_METHODS(sse);
+DEFINE_GEN_METHODS(ssse3);
+DEFINE_REC_METHODS(ssse3);
 
 static boolean_t
-raidz_will_sse_work(void)
+raidz_will_ssse3_work(void)
 {
 	return (zfs_sse_available() && zfs_sse2_available() &&
 	    zfs_ssse3_available());
 }
 
-const raidz_impl_ops_t vdev_raidz_sse_impl = {
+const raidz_impl_ops_t vdev_raidz_ssse3_impl = {
 	.init = NULL,
 	.fini = NULL,
-	.gen = RAIDZ_GEN_METHODS(sse),
-	.rec = RAIDZ_REC_METHODS(sse),
-	.is_supported = &raidz_will_sse_work,
-	.name = "sse"
+	.gen = RAIDZ_GEN_METHODS(ssse3),
+	.rec = RAIDZ_REC_METHODS(ssse3),
+	.is_supported = &raidz_will_ssse3_work,
+	.name = "ssse3"
 };
 
 #endif /* defined(__x86_64) && defined(HAVE_SSSE3) */

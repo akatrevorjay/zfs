@@ -211,10 +211,18 @@ static const struct {
 
 #include "vdev_raidz_math_impl.h"
 
+/*
+ * If compiled with -O0, gcc doesn't do any stack frame coalescing
+ * and -Wframe-larger-than=1024 is triggered in debug mode.
+ * Starting with gcc 4.8, new opt level -Og is introduced for debugging, which
+ * does not trigger this warning.
+ */
+#pragma GCC diagnostic ignored "-Wframe-larger-than="
+
 DEFINE_GEN_METHODS(scalar);
 DEFINE_REC_METHODS(scalar);
 
-static boolean_t
+boolean_t
 raidz_will_scalar_work(void)
 {
 	return (B_TRUE); /* always */

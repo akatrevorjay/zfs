@@ -838,11 +838,15 @@ Default value: \fB67,108,864\fR.
 .RS 12n
 Select a fletcher 4 implementation.
 .sp
-Supported selectors are: \fBfastest\fR, \fBscalar\fR, and \fBavx2\fR when
-AVX2 is supported by the processor.  If multiple implementations of fletcher 4
-are available the \fBfastest\fR will be chosen using a micro benchmark.
-Selecting \fBscalar\fR results in the original CPU based calculation being
-used, \fBavx2\fR uses the AVX2 vector instructions to compute a fletcher 4.
+Supported selectors are: \fBfastest\fR, \fBscalar\fR, \fBsse2\fR, \fBssse3\fR,
+and \fBavx2\fR. All of the selectors except \fBfastest\fR and \fBscalar\fR
+require instruction set extensions to be available and will only appear if ZFS
+detects that they are present at runtime. If multiple implementations of
+fletcher 4 are available, the \fBfastest\fR will be chosen using a micro
+benchmark. Selecting \fBscalar\fR results in the original CPU based calculation
+being used. Selecting any option other than \fBfastest\fR and \fBscalar\fR
+results in vector instructions from the respective CPU instruction set being
+used.
 .sp
 Default value: \fBfastest\fR.
 .RE
@@ -1680,7 +1684,7 @@ Default value: \fB4,096\fR.
 \fBzfs_vdev_raidz_impl\fR (string)
 .ad
 .RS 12n
-Parameter for selecting raidz implementation to use.
+Parameter for selecting raidz parity implementation to use.
 
 Options marked (always) below may be selected on module load as they are
 supported on all systems.
@@ -1695,7 +1699,8 @@ Possible options are:
   fastest  - (always) implementation selected using built-in benchmark
   original - (always) original raidz implementation
   scalar   - (always) scalar raidz implementation
-  sse      - implementation using SSE instruction set (64bit x86 only)
+  sse2     - implementation using SSE2 instruction set (64bit x86 only)
+  ssse3    - implementation using SSSE3 instruction set (64bit x86 only)
   avx2     - implementation using AVX2 instruction set (64bit x86 only)
 .sp
 Default value: \fBfastest\fR.
