@@ -1270,7 +1270,7 @@ dsl_dataset_snapshot_check(void *arg, dmu_tx_t *tx)
 	    pair != NULL; pair = nvlist_next_nvpair(ddsa->ddsa_snaps, pair)) {
 		int error = 0;
 		dsl_dataset_t *ds;
-		char *name, *atp;
+		char *name, *atp = NULL;
 		char dsname[ZFS_MAX_DATASET_NAME_LEN];
 
 		name = nvpair_name(pair);
@@ -1584,7 +1584,7 @@ dsl_dataset_snapshot_tmp_sync(void *arg, dmu_tx_t *tx)
 {
 	dsl_dataset_snapshot_tmp_arg_t *ddsta = arg;
 	dsl_pool_t *dp = dmu_tx_pool(tx);
-	dsl_dataset_t *ds;
+	dsl_dataset_t *ds = NULL;
 
 	VERIFY0(dsl_dataset_hold(dp, ddsta->ddsta_fsname, FTAG, &ds));
 
@@ -1770,7 +1770,7 @@ get_receive_resume_stats(dsl_dataset_t *ds, nvlist_t *nv)
 		compressed_size = gzip_compress(packed, compressed,
 		    packed_size, packed_size, 6);
 
-		fletcher_4_native(compressed, compressed_size, &cksum);
+		fletcher_4_native_varsize(compressed, compressed_size, &cksum);
 
 		str = kmem_alloc(compressed_size * 2 + 1, KM_SLEEP);
 		for (i = 0; i < compressed_size; i++) {
@@ -2081,7 +2081,7 @@ dsl_dataset_rename_snapshot_sync(void *arg, dmu_tx_t *tx)
 {
 	dsl_dataset_rename_snapshot_arg_t *ddrsa = arg;
 	dsl_pool_t *dp = dmu_tx_pool(tx);
-	dsl_dataset_t *hds;
+	dsl_dataset_t *hds = NULL;
 
 	VERIFY0(dsl_dataset_hold(dp, ddrsa->ddrsa_fsname, FTAG, &hds));
 	ddrsa->ddrsa_tx = tx;
@@ -2836,7 +2836,8 @@ dsl_dataset_clone_swap_check_impl(dsl_dataset_t *clone,
 	 * "slack" factor for received datasets with refquota set on them.
 	 * See the bottom of this function for details on its use.
 	 */
-	uint64_t refquota_slack = DMU_MAX_ACCESS * spa_asize_inflation;
+	uint64_t refquota_slack = (uint64_t)DMU_MAX_ACCESS *
+	    spa_asize_inflation;
 	int64_t unused_refres_delta;
 
 	/* they should both be heads */
@@ -3208,7 +3209,7 @@ dsl_dataset_set_refquota_sync(void *arg, dmu_tx_t *tx)
 {
 	dsl_dataset_set_qr_arg_t *ddsqra = arg;
 	dsl_pool_t *dp = dmu_tx_pool(tx);
-	dsl_dataset_t *ds;
+	dsl_dataset_t *ds = NULL;
 	uint64_t newval;
 
 	VERIFY0(dsl_dataset_hold(dp, ddsqra->ddsqra_name, FTAG, &ds));
@@ -3335,7 +3336,7 @@ dsl_dataset_set_refreservation_sync(void *arg, dmu_tx_t *tx)
 {
 	dsl_dataset_set_qr_arg_t *ddsqra = arg;
 	dsl_pool_t *dp = dmu_tx_pool(tx);
-	dsl_dataset_t *ds;
+	dsl_dataset_t *ds = NULL;
 
 	VERIFY0(dsl_dataset_hold(dp, ddsqra->ddsqra_name, FTAG, &ds));
 	dsl_dataset_set_refreservation_sync_impl(ds,

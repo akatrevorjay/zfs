@@ -1442,7 +1442,7 @@ zfs_send_resume_token_to_nvlist(libzfs_handle_t *hdl, const char *token)
 
 	/* verify checksum */
 	zio_cksum_t cksum;
-	fletcher_4_native(compressed, len, &cksum);
+	fletcher_4_native_varsize(compressed, len, &cksum);
 	if (cksum.zc_word[0] != checksum) {
 		free(compressed);
 		zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
@@ -3264,8 +3264,9 @@ zfs_receive_one(libzfs_handle_t *hdl, int infd, const char *tosnap,
 		 * specified only the pool name (i.e. if the destination name
 		 * contained no slash character).
 		 */
-		if (!stream_wantsnewfs ||
-		    (cp = strrchr(name, '/')) == NULL) {
+		cp = strrchr(name, '/');
+
+		if (!stream_wantsnewfs || cp == NULL) {
 			zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
 			    "destination '%s' does not exist"), name);
 			err = zfs_error(hdl, EZFS_NOENT, errbuf);
@@ -3709,8 +3710,8 @@ zfs_receive(libzfs_handle_t *hdl, const char *tosnap, nvlist_t *props,
 	VERIFY(0 == close(cleanup_fd));
 
 	if (err == 0 && !flags->nomount && top_zfs) {
-		zfs_handle_t *zhp;
-		prop_changelist_t *clp;
+		zfs_handle_t *zhp = NULL;
+		prop_changelist_t *clp = NULL;
 
 		zhp = zfs_open(hdl, top_zfs, ZFS_TYPE_FILESYSTEM);
 		if (zhp != NULL) {

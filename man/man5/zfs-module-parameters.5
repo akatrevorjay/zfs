@@ -27,6 +27,19 @@ Description of the different parameters to the ZFS module.
 .sp
 .ne 2
 .na
+\fBignore_hole_birth\fR (int)
+.ad
+.RS 12n
+When set, the hole_birth optimization will not be used, and all holes will
+always be sent on zfs send. Useful if you suspect your datasets are affected
+by a bug in hole_birth.
+.sp
+Use \fB1\fR for on and \fB0\fR (default) for off.
+.RE
+
+.sp
+.ne 2
+.na
 \fBl2arc_feed_again\fR (int)
 .ad
 .RS 12n
@@ -379,6 +392,37 @@ Default value: \fB8\fR.
 Min time before an active prefetch stream can be reclaimed
 .sp
 Default value: \fB2\fR.
+.RE
+
+.sp
+.ne 2
+.na
+\fBzfs_arc_dnode_limit\fR (ulong)
+.ad
+.RS 12n
+When the number of bytes consumed by dnodes in the ARC exceeds this number of
+bytes, try to unpin some of it in response to demand for non-metadata.  This
+value acts as a floor to the amount of dnode metadata.
+
+See also \fBzfs_arc_meta_prune\fR which serves a similar purpose but is used
+when the amount of metadata in the ARC exceeds \fBzfs_arc_meta_limit\fR rather
+than in response to overall demand for non-metadata.
+
+.sp
+Default value: \fB10% of zfs_arc_meta_limit\fR.
+.RE
+
+.sp
+.ne 2
+.na
+\fBzfs_arc_dnode_reduce_percent\fR (ulong)
+.ad
+.RS 12n
+Percentage of ARC dnodes to try to scan in response to demand for non-metadata
+when the number of bytes consumed by dnodes exceeds \fBzfs_arc_dnode_limit\fB.
+
+.sp
+Default value: \fB10% of the number of dnodes in the ARC\fR.
 .RE
 
 .sp
@@ -839,14 +883,14 @@ Default value: \fB67,108,864\fR.
 Select a fletcher 4 implementation.
 .sp
 Supported selectors are: \fBfastest\fR, \fBscalar\fR, \fBsse2\fR, \fBssse3\fR,
-and \fBavx2\fR. All of the selectors except \fBfastest\fR and \fBscalar\fR
-require instruction set extensions to be available and will only appear if ZFS
-detects that they are present at runtime. If multiple implementations of
-fletcher 4 are available, the \fBfastest\fR will be chosen using a micro
-benchmark. Selecting \fBscalar\fR results in the original CPU based calculation
-being used. Selecting any option other than \fBfastest\fR and \fBscalar\fR
-results in vector instructions from the respective CPU instruction set being
-used.
+\fBavx2\fR, and \fBavx512f\fR.
+All of the selectors except \fBfastest\fR and \fBscalar\fR require instruction
+set extensions to be available and will only appear if ZFS detects that they are
+present at runtime. If multiple implementations of fletcher 4 are available,
+the \fBfastest\fR will be chosen using a micro benchmark. Selecting \fBscalar\fR
+results in the original, CPU based calculation, being used. Selecting any option
+other than \fBfastest\fR and \fBscalar\fR results in vector instructions from
+the respective CPU instruction set being used.
 .sp
 Default value: \fBfastest\fR.
 .RE
