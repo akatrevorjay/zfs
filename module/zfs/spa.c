@@ -1346,6 +1346,14 @@ spa_unload(spa_t *spa)
 	}
 
 	/*
+	 * Stop autotrim tasks.
+	 */
+	mutex_enter(&spa->spa_auto_trim_lock);
+	if (spa->spa_auto_trim_taskq)
+		spa_auto_trim_taskq_destroy(spa);
+	mutex_exit(&spa->spa_auto_trim_lock);
+
+	/*
 	 * Wait for any outstanding async I/O to complete.
 	 */
 	if (spa->spa_async_zio_root != NULL) {
@@ -1358,14 +1366,6 @@ spa_unload(spa_t *spa)
 	bpobj_close(&spa->spa_deferred_bpobj);
 
 	spa_config_enter(spa, SCL_ALL, FTAG, RW_WRITER);
-
-	/*
-	 * Stop autotrim tasks.
-	 */
-	mutex_enter(&spa->spa_auto_trim_lock);
-	if (spa->spa_auto_trim_taskq)
-		spa_auto_trim_taskq_destroy(spa);
-	mutex_exit(&spa->spa_auto_trim_lock);
 
 	/*
 	 * Close all vdevs.
