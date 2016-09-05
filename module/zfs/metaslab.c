@@ -2982,22 +2982,33 @@ metaslab_check_free(spa_t *spa, const blkptr_t *bp)
 		uint64_t size = DVA_GET_ASIZE(&bp->blk_dva[i]);
 		metaslab_t *msp = vd->vdev_ms[offset >> vd->vdev_ms_shift];
 
+		mutex_enter(&msp->ms_lock);
 		if (msp->ms_loaded) {
+			VERIFY(&msp->ms_lock == msp->ms_tree->rt_lock);
 			range_tree_verify(msp->ms_tree, offset, size);
 #ifdef	DEBUG
+			VERIFY(&msp->ms_lock ==
+			    msp->ms_cur_ts->ts_tree->rt_lock);
 			range_tree_verify(msp->ms_cur_ts->ts_tree,
 			    offset, size);
 			if (msp->ms_prev_ts != NULL) {
+				VERIFY(&msp->ms_lock ==
+				    msp->ms_prev_ts->ts_tree->rt_lock);
 				range_tree_verify(msp->ms_prev_ts->ts_tree,
 				    offset, size);
 			}
 #endif
 		}
 
-		for (j = 0; j < TXG_SIZE; j++)
+		for (j = 0; j < TXG_SIZE; j++) {
+			VERIFY(&msp->ms_lock == msp->ms_freetree[j]->rt_lock);
 			range_tree_verify(msp->ms_freetree[j], offset, size);
-		for (j = 0; j < TXG_DEFER_SIZE; j++)
+		}
+		for (j = 0; j < TXG_DEFER_SIZE; j++) {
+			VERIFY(&msp->ms_lock == msp->ms_defertree[j]->rt_lock);
 			range_tree_verify(msp->ms_defertree[j], offset, size);
+		}
+		mutex_exit(&msp->ms_lock);
 	}
 	spa_config_exit(spa, SCL_VDEV, FTAG);
 }
