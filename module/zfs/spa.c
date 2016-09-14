@@ -200,7 +200,7 @@ spa_prop_get_config(spa_t *spa, nvlist_t **nvp)
 	vdev_t *rvd = spa->spa_root_vdev;
 	dsl_pool_t *pool = spa->spa_dsl_pool;
 	uint64_t size, alloc, cap, version;
-	zprop_source_t src = ZPROP_SRC_NONE;
+	const zprop_source_t src = ZPROP_SRC_NONE;
 	spa_config_dirent_t *dp;
 	metaslab_class_t *mc = spa_normal_class(spa);
 
@@ -232,11 +232,13 @@ spa_prop_get_config(spa_t *spa, nvlist_t **nvp)
 		    rvd->vdev_state, src);
 
 		version = spa_version(spa);
-		if (version == zpool_prop_default_numeric(ZPOOL_PROP_VERSION))
-			src = ZPROP_SRC_DEFAULT;
-		else
-			src = ZPROP_SRC_LOCAL;
-		spa_prop_add_list(*nvp, ZPOOL_PROP_VERSION, NULL, version, src);
+		if (version == zpool_prop_default_numeric(ZPOOL_PROP_VERSION)) {
+			spa_prop_add_list(*nvp, ZPOOL_PROP_VERSION, NULL,
+			    version, ZPROP_SRC_DEFAULT);
+		} else {
+			spa_prop_add_list(*nvp, ZPOOL_PROP_VERSION, NULL,
+			    version, ZPROP_SRC_LOCAL);
+		}
 	}
 
 	if (pool != NULL) {
@@ -820,19 +822,14 @@ spa_change_guid(spa_t *spa)
 static int
 spa_error_entry_compare(const void *a, const void *b)
 {
-	spa_error_entry_t *sa = (spa_error_entry_t *)a;
-	spa_error_entry_t *sb = (spa_error_entry_t *)b;
+	const spa_error_entry_t *sa = (const spa_error_entry_t *)a;
+	const spa_error_entry_t *sb = (const spa_error_entry_t *)b;
 	int ret;
 
-	ret = bcmp(&sa->se_bookmark, &sb->se_bookmark,
+	ret = memcmp(&sa->se_bookmark, &sb->se_bookmark,
 	    sizeof (zbookmark_phys_t));
 
-	if (ret < 0)
-		return (-1);
-	else if (ret > 0)
-		return (1);
-	else
-		return (0);
+	return (AVL_ISIGN(ret));
 }
 
 /*
@@ -1531,19 +1528,20 @@ spa_load_l2cache(spa_t *spa)
 
 	ASSERT(spa_config_held(spa, SCL_ALL, RW_WRITER) == SCL_ALL);
 
-	if (sav->sav_config != NULL) {
-		VERIFY(nvlist_lookup_nvlist_array(sav->sav_config,
-		    ZPOOL_CONFIG_L2CACHE, &l2cache, &nl2cache) == 0);
-		newvdevs = kmem_alloc(nl2cache * sizeof (void *), KM_SLEEP);
-	} else {
-		nl2cache = 0;
-		newvdevs = NULL;
-	}
-
 	oldvdevs = sav->sav_vdevs;
 	oldnvdevs = sav->sav_count;
 	sav->sav_vdevs = NULL;
 	sav->sav_count = 0;
+
+	if (sav->sav_config == NULL) {
+		nl2cache = 0;
+		newvdevs = NULL;
+		goto out;
+	}
+
+	VERIFY(nvlist_lookup_nvlist_array(sav->sav_config,
+	    ZPOOL_CONFIG_L2CACHE, &l2cache, &nl2cache) == 0);
+	newvdevs = kmem_alloc(nl2cache * sizeof (void *), KM_SLEEP);
 
 	/*
 	 * Process new nvlist of vdevs.
@@ -1595,6 +1593,24 @@ spa_load_l2cache(spa_t *spa)
 		}
 	}
 
+	sav->sav_vdevs = newvdevs;
+	sav->sav_count = (int)nl2cache;
+
+	/*
+	 * Recompute the stashed list of l2cache devices, with status
+	 * information this time.
+	 */
+	VERIFY(nvlist_remove(sav->sav_config, ZPOOL_CONFIG_L2CACHE,
+	    DATA_TYPE_NVLIST_ARRAY) == 0);
+
+	l2cache = kmem_alloc(sav->sav_count * sizeof (void *), KM_SLEEP);
+	for (i = 0; i < sav->sav_count; i++)
+		l2cache[i] = vdev_config_generate(spa,
+		    sav->sav_vdevs[i], B_TRUE, VDEV_CONFIG_L2CACHE);
+	VERIFY(nvlist_add_nvlist_array(sav->sav_config,
+	    ZPOOL_CONFIG_L2CACHE, l2cache, sav->sav_count) == 0);
+
+out:
 	/*
 	 * Purge vdevs that were dropped
 	 */
@@ -1616,26 +1632,6 @@ spa_load_l2cache(spa_t *spa)
 	if (oldvdevs)
 		kmem_free(oldvdevs, oldnvdevs * sizeof (void *));
 
-	if (sav->sav_config == NULL)
-		goto out;
-
-	sav->sav_vdevs = newvdevs;
-	sav->sav_count = (int)nl2cache;
-
-	/*
-	 * Recompute the stashed list of l2cache devices, with status
-	 * information this time.
-	 */
-	VERIFY(nvlist_remove(sav->sav_config, ZPOOL_CONFIG_L2CACHE,
-	    DATA_TYPE_NVLIST_ARRAY) == 0);
-
-	l2cache = kmem_alloc(sav->sav_count * sizeof (void *), KM_SLEEP);
-	for (i = 0; i < sav->sav_count; i++)
-		l2cache[i] = vdev_config_generate(spa,
-		    sav->sav_vdevs[i], B_TRUE, VDEV_CONFIG_L2CACHE);
-	VERIFY(nvlist_add_nvlist_array(sav->sav_config,
-	    ZPOOL_CONFIG_L2CACHE, l2cache, sav->sav_count) == 0);
-out:
 	for (i = 0; i < sav->sav_count; i++)
 		nvlist_free(l2cache[i]);
 	if (sav->sav_count)
@@ -3095,6 +3091,8 @@ spa_load_best(spa_t *spa, spa_load_state_t state, int mosconfig,
 
 	if (config && (rewind_error || state != SPA_LOAD_RECOVER))
 		spa_config_set(spa, config);
+	else
+		nvlist_free(config);
 
 	if (state == SPA_LOAD_RECOVER) {
 		ASSERT3P(loadinfo, ==, NULL);
