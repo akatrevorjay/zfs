@@ -5447,6 +5447,7 @@ scrub_callback(zpool_handle_t *zhp, void *data)
 typedef struct trim_cbdata {
 	boolean_t	cb_start;
 	uint64_t	cb_rate;
+	boolean_t	cb_fulltrim;
 } trim_cbdata_t;
 
 int
@@ -5464,7 +5465,7 @@ trim_callback(zpool_handle_t *zhp, void *data)
 		return (1);
 	}
 
-	err = zpool_trim(zhp, cb->cb_start, cb->cb_rate);
+	err = zpool_trim(zhp, cb->cb_start, cb->cb_rate, cb->cb_fulltrim);
 
 	return (err != 0);
 }
@@ -5511,6 +5512,7 @@ zpool_do_scrub(int argc, char **argv)
 /*
  * zpool trim [-s|-r <rate>] <pool> ...
  *
+ *	-f		Full trim.  Trims never-allocated space.
  *	-s		Stop. Stops any in-progress trim.
  *	-r <rate>	Sets the TRIM rate.
  */
@@ -5522,10 +5524,14 @@ zpool_do_trim(int argc, char **argv)
 
 	cb.cb_start = B_TRUE;
 	cb.cb_rate = 0;
+	cb.cb_fulltrim = B_FALSE;
 
 	/* check options */
-	while ((c = getopt(argc, argv, "sr:")) != -1) {
+	while ((c = getopt(argc, argv, "fsr:")) != -1) {
 		switch (c) {
+		case 'f':
+			cb.cb_fulltrim = B_TRUE;
+			break;
 		case 's':
 			cb.cb_start = B_FALSE;
 			break;

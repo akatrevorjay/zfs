@@ -149,7 +149,7 @@ zpool \- configures ZFS storage pools
 
 .LP
 .nf
-\fBzpool trim\fR [\fB-r \fIrate\fR|\fB-s\fR] \fIpool\fR ...
+\fBzpool trim\fR [\fB-f\fR] [\fB-r \fIrate\fR|\fB-s\fR] \fIpool\fR ...
 .fi
 
 .LP
@@ -2066,7 +2066,7 @@ Stop scrubbing.
 .sp
 .ne 2
 .na
-\fB\fBzpool trim\fR [\fB-r \fIrate\fR|\fB-s\fR] \fIpool\fR ...\fR
+\fB\fBzpool trim\fR [\fB-f\fR] [\fB-r \fIrate\fR|\fB-s\fR] \fIpool\fR ...\fR
 .ad
 .sp .6
 .RS 4n
@@ -2099,6 +2099,19 @@ prematurely terminate an on-demand TRIM operation.
 .sp
 See the documentation for the \fBautotrim\fR property above for a description
 of the vdevs on which \fBzpool trim\fR is supported.
+.sp
+.ne 2
+.na
+\fB\fB-f\fR
+.ad
+.RS 6n
+Causes space which has never been allocated by ZFS to be trimmed.
+This option is useful when disks in the pool contain data not written
+by ZFS.
+.sp
+By default, only blocks which were previously used in the current pool
+are trimmed.
+.RE
 .sp
 .ne 2
 .na
