@@ -1,8 +1,8 @@
-Index: zfs-linux-0.6.5.3/lib/libspl/include/sys/isa_defs.h
+Index: zfs-linux/lib/libspl/include/sys/isa_defs.h
 ===================================================================
---- zfs-linux-0.6.5.3.orig/lib/libspl/include/sys/isa_defs.h	2015-10-27 14:36:37.904604893 -0600
-+++ zfs-linux-0.6.5.3/lib/libspl/include/sys/isa_defs.h	2015-10-27 14:36:58.008605392 -0600
-@@ -98,8 +98,8 @@
+--- zfs-linux.orig/lib/libspl/include/sys/isa_defs.h
++++ zfs-linux/lib/libspl/include/sys/isa_defs.h
+@@ -98,8 +98,8 @@ extern "C" {
  #endif
  #endif
  
