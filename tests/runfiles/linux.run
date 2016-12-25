@@ -60,6 +60,9 @@ tests = ['cache_002_pos', 'cache_003_pos', 'cache_004_neg',
 [tests/functional/casenorm]
 tests = ['case_all_values', 'norm_all_values']
 
+[tests/functional/chattr]
+tests = ['chattr_001_pos', 'chattr_002_neg']
+
 [tests/functional/checksum]
 tests = ['run_edonr_test', 'run_sha2_test', 'run_skein_test', 'filetest_001_pos']
 
@@ -144,7 +147,7 @@ tests = ['zfs_receive_001_pos', 'zfs_receive_002_pos', 'zfs_receive_003_pos',
     'zfs_receive_005_neg', 'zfs_receive_006_pos',
     'zfs_receive_007_neg', 'zfs_receive_008_pos', 'zfs_receive_009_neg',
     'zfs_receive_010_pos', 'zfs_receive_011_pos', 'zfs_receive_012_pos',
-    'zfs_receive_013_pos']
+    'zfs_receive_013_pos', 'zfs_receive_014_pos']
 
 [tests/functional/cli_root/zfs_rename]
 tests = ['zfs_rename_001_pos', 'zfs_rename_002_pos', 'zfs_rename_003_pos',
@@ -292,7 +295,7 @@ tests = ['zpool_import_001_pos',
     'zpool_import_003_pos', 'zpool_import_004_pos', 'zpool_import_005_pos',
     'zpool_import_006_pos', 'zpool_import_007_pos', 'zpool_import_008_pos',
     'zpool_import_009_neg', 'zpool_import_010_pos', 'zpool_import_011_neg',
-    'zpool_import_013_neg',
+    'zpool_import_013_neg', 'zpool_import_014_pos',
     'zpool_import_features_001_pos', 'zpool_import_features_002_neg',
     'zpool_import_features_003_pos','zpool_import_missing_001_pos',
     'zpool_import_missing_002_pos', 'zpool_import_missing_003_pos',
