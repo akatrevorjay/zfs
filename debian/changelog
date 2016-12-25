@@ -1,3 +1,15 @@
+zfs-linux (0.7.0-rc2-1~5.gbpef98e8) UNRELEASED; urgency=medium
+
+  ** SNAPSHOT build @c94020ac77373d88f8c40bb4c9b16d2708bc2303 **
+
+  [ Trevor Joynson (trevorj) ]
+  * Add new module
+  * Up
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (trevorj) <github@skywww.net>  Sat, 24 Dec 2016 17:07:19 -0800
+
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
   * 0.7.0-rc1
