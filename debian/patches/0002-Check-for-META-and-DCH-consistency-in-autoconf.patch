@@ -1,7 +1,16 @@
-Index: zfs-linux/config/zfs-meta.m4
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 24 Dec 2016 16:55:38 -0800
+Subject: Check-for-META-and-DCH-consistency-in-autoconf
+
 ===================================================================
---- zfs-linux.orig/config/zfs-meta.m4
-+++ zfs-linux/config/zfs-meta.m4
+---
+ config/zfs-meta.m4 | 34 +++++++++++++++++++++++++++++-----
+ 1 file changed, 29 insertions(+), 5 deletions(-)
+
+diff --git a/config/zfs-meta.m4 b/config/zfs-meta.m4
+index 3e1429d..b8e26c4 100644
+--- a/config/zfs-meta.m4
++++ b/config/zfs-meta.m4
 @@ -1,9 +1,10 @@
  dnl #
  dnl # DESCRIPTION:

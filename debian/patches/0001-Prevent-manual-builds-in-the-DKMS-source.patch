@@ -1,7 +1,20 @@
-Index: zfs-linux/config/dkms.m4
+From: Ubuntu Developers <ubuntu-devel-discuss@lists.ubuntu.com>
+Date: Sat, 24 Dec 2016 16:55:38 -0800
+Subject: Prevent-manual-builds-in-the-DKMS-source
+
 ===================================================================
+---
+ config/dkms.m4      | 14 ++++++++++++++
+ config/user.m4      |  1 +
+ config/zfs-build.m4 |  2 +-
+ 3 files changed, 16 insertions(+), 1 deletion(-)
+ create mode 100644 config/dkms.m4
+
+diff --git a/config/dkms.m4 b/config/dkms.m4
+new file mode 100644
+index 0000000..cfa1152
 --- /dev/null
-+++ zfs-linux/config/dkms.m4
++++ b/config/dkms.m4
 @@ -0,0 +1,14 @@
 +dnl #
 +dnl # Prevent manual building in DKMS source tree.
@@ -17,10 +30,10 @@ Index: zfs-linux/config/dkms.m4
 +		AC_MSG_RESULT([not found])
 +        ])
 +])
-Index: zfs-linux/config/user.m4
-===================================================================
---- zfs-linux.orig/config/user.m4
-+++ zfs-linux/config/user.m4
+diff --git a/config/user.m4 b/config/user.m4
+index f70ab63..a8de7a2 100644
+--- a/config/user.m4
++++ b/config/user.m4
 @@ -2,6 +2,7 @@ dnl #
  dnl # Default ZFS user configuration
  dnl #
@@ -29,10 +42,10 @@ Index: zfs-linux/config/user.m4
  	ZFS_AC_CONFIG_USER_MOUNT_HELPER
  	ZFS_AC_CONFIG_USER_UDEV
  	ZFS_AC_CONFIG_USER_SYSTEMD
-Index: zfs-linux/config/zfs-build.m4
-===================================================================
---- zfs-linux.orig/config/zfs-build.m4
-+++ zfs-linux/config/zfs-build.m4
+diff --git a/config/zfs-build.m4 b/config/zfs-build.m4
+index 8b969da..b87ab2f 100644
+--- a/config/zfs-build.m4
++++ b/config/zfs-build.m4
 @@ -86,8 +86,8 @@ AC_DEFUN([ZFS_AC_CONFIG], [
  	ZFS_AC_CONFIG_ALWAYS
  
