@@ -98,8 +98,8 @@ extern "C" {
 #endif
 #endif
 
-#if !defined(_BIG_ENDIAN)
-#define	_BIG_ENDIAN
+#if !defined(_BIG_ENDIAN) && !defined(_LITTLE_ENDIAN)
+#error powerpc no endian specified
 #endif
 
 #define	_SUNOS_VTOC_16
