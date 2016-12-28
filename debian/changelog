@@ -1,9 +1,25 @@
-zfs-linux (0.7.0-rc2-1~5.gbpef98e8) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc2-1~6.gbpc3161a) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @c94020ac77373d88f8c40bb4c9b16d2708bc2303 **
+  ** SNAPSHOT build @c3161a49a25c08fdead617072388b02cd9a3d673 **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
+  * Up
+
+  [ Trevor Joynson (Debian) ]
+
+  [ Tim Chase ]
+  * 4.10 compat - BIO flag changes and others
+
+  [ Trevor Joynson (trevorj) ]
+  * Import 0.6.5.7-0ubuntu3
+  * gbp changes
+  * Bump ver
+  * -j9 baby
+  * Up
+  * Yup
+  * Add new module
+  * Up
   * Up
 
   [ Trevor Joynson (Debian) ]
