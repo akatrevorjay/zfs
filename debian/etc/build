@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+set -xv
+
+gbp buildpackage \
+  --git-submodules \
+  --git-builder='debuild --preserve-envvar=CCACHE_DIR --prepend-path=/usr/lib/ccache -i -I' \
+  --git-no-pristine-tar \
+  --git-force-create \
+&& :
+  #--git-ignore-branch \
+  #--git-ignore-new \
+  #--git-pristine-tar \
+  #--git-tag \
+  #--git-sign-tags \
+  #--git-force-create
