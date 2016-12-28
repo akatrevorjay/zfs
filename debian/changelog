@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc2-1~6.gbpc3161a) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc2-1~7.gbpf3786f) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @c3161a49a25c08fdead617072388b02cd9a3d673 **
+  ** SNAPSHOT build @f3786f99c00d247b129268b2a65ddf801154840f **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -21,6 +21,12 @@ zfs-linux (0.7.0-rc2-1~6.gbpc3161a) UNRELEASED; urgency=medium
   * Add new module
   * Up
   * Up
+
+  [ Trevor Joynson (Debian) ]
+
+  [ Trevor Joynson (trevorj) ]
+  * Bump
+  * Grr
 
   [ Trevor Joynson (Debian) ]
 
