@@ -11,7 +11,16 @@ META_DISTDIR := $(CURDIR)/$(META_NAME)-$(META_VERSION)/
 %:
 	dh $@ --with autoreconf,dkms
 
+#%:
+#	dh $@ --with autoreconf
+
 override_dh_auto_configure:
+	@# Embed the downstream version in the module.
+	@sed \
+	  -e 's/^Version:.*/Version:      $(VERSION)/' \
+	  -e 's/^Release:.*/Release:      $(REVISION)/' \
+	  -i.orig META
+
 	@# Build the userland, but don't build the kernel modules.
 	dh_auto_configure -- \
 	  --bindir=/bin \
@@ -58,7 +67,7 @@ override_dh_auto_install:
 	mv '$(META_DISTDIR)' '$(CURDIR)/debian/zfs-dkms/usr/src/'
 
 override_dh_dkms:
-	dh_dkms -V
+	dh_dkms -V $(META_VERSION)
 
 override_dh_fixperms:
 	dh_fixperms
