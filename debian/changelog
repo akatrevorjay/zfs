@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc3-1ubuntu1~8.gbp55eba5) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc3-1ubuntu1~9.gbpcf08bf) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @55eba5dd32711b8e6a9e51afd3093809229f63dd **
+  ** SNAPSHOT build @cf08bf1517672c6e7dfedb40a9993733a09ad071 **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -411,6 +411,12 @@ zfs-linux (0.7.0-rc3-1ubuntu1~8.gbp55eba5) UNRELEASED; urgency=medium
   * Update ppa script
   * Update gbp conf with br changes
   * Update gbp conf with br changes
+
+  [ Trevor Joynson (Debian) ]
+
+  [ Trevor Joynson (trevorj) ]
+  * Bump
+  * No pristine
 
   [ Trevor Joynson (Debian) ]
 
