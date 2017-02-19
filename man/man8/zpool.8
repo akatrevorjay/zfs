@@ -149,6 +149,11 @@ zpool \- configures ZFS storage pools
 
 .LP
 .nf
+\fBzpool trim\fR [\fB-p\fR] [\fB-r \fIrate\fR|\fB-s\fR] \fIpool\fR ...
+.fi
+
+.LP
+.nf
 \fBzpool set\fR \fIproperty\fR=\fIvalue\fR \fIpool\fR
 .fi
 
@@ -716,7 +721,6 @@ Returns \fBEIO\fR to any new write \fBI/O\fR requests but allows reads to any of
 .RS 12n
 Prints out a message to the console and generates a system crash dump.
 .RE
-
 .RE
 
 .sp
@@ -729,6 +733,49 @@ The value of this property is the current state of \fIfeature_name\fR. The
 only valid value when setting this property is \fBenabled\fR which moves
 \fIfeature_name\fR to the enabled state. See \fBzpool-features\fR(5) for
 details on feature states.
+.RE
+
+.sp
+.ne 2
+.na
+\fB\fBautotrim\fR=\fBon\fR | \fBoff\fR\fR
+.ad
+.sp .6
+.RS 4n
+When set to \fBon\fR, while deleting data, ZFS will inform the underlying
+vdevs of any blocks that have been marked as freed. This allows thinly
+provisioned vdevs to reclaim unused blocks. This feature is supported on
+file vdevs via hole punching if it is supported by their underlying file system
+and on block device vdevs if their underlying driver supports BLKDISCARD.
+The default setting for this property is \fBoff\fR.
+.sp
+Please note that automatic trimming of data blocks can put significant
+stress on the underlying storage devices if they do not handle these
+commands in a background, low-priority manner. In that case, it may be
+possible to achieve most of the benefits of trimming free space on the
+pool by running an on-demand (manual) trim every once in a while during
+a maintenance window using the \fBzpool trim\fR command.
+.sp
+Automatic trim does not reclaim blocks after a delete immediately.
+Instead, it waits approximately 32-64 TXGs (or as defined by the
+\fBzfs_txgs_per_trim\fR tunable) to allow for more efficient aggregation
+of smaller portions of free space into fewer larger regions, as well as
+to allow for longer pool corruption recovery via \fBzpool import -F\fR.
+.RE
+
+.sp
+.ne 2
+.na
+\fB\fBforcetrim\fR=\fBon\fR | \fBoff\fR\fR
+.ad
+.sp .6
+.RS 4n
+Controls whether device support is taken into consideration when issuing
+TRIM commands to the underlying vdevs of the pool. Normally, both
+automatic trim and on-demand (manual) trim only issue TRIM commands if a
+vdev indicates support for it. Setting the \fBforcetrim\fR property to
+\fBon\fR will force ZFS to issue TRIMs even if it thinks a device does
+not support it. The default is \fBoff\fR.
 .RE
 
 .sp
@@ -2016,6 +2063,87 @@ Because scrubbing and resilvering are \fBI/O\fR-intensive operations, \fBZFS\fR 
 .ad
 .RS 6n
 Stop scrubbing.
+.RE
+
+.RE
+
+.sp
+.ne 2
+.na
+\fB\fBzpool trim\fR [\fB-p\fR] [\fB-r \fIrate\fR|\fB-s\fR] \fIpool\fR ...\fR
+.ad
+.sp .6
+.RS 4n
+Initiates a on-demand TRIM operation on all of the free space of a pool.
+This informs the underlying storage devices of all of the blocks that
+the pool no longer considers allocated, thus allowing thinly provisioned
+storage devices to reclaim them. Please note that this collects all
+space marked as "freed" in the pool immediately and doesn't wait the
+\fBzfs_txgs_per_trim\fR delay as automatic TRIM does. Hence, this can
+limit pool corruption recovery options during and immediately following
+the on-demand TRIM to 1-2 TXGs into the past (instead of the standard
+32-64 of automatic TRIM). This approach, however, allows you to recover
+the maximum amount of free space from the pool immediately without
+having to wait.
+.sp
+Also note that an on-demand TRIM operation can be initiated irrespective of
+the \fBautotrim\fR zpool property setting. It does, however, respect the
+\fBforcetrim\fR zpool property.
+.sp
+An on-demand TRIM operation does not conflict with an ongoing scrub, but
+it can put significant I/O stress on the underlying vdevs. A resilver,
+however, automatically stops an on-demand TRIM operation. You can
+manually reinitiate the TRIM operation after the resilver has started,
+by simply reissuing the \fBzpool trim\fR command.
+.sp
+Adding a vdev during TRIM is supported, although the progression display
+in \fBzpool status\fR might not be entirely accurate in that case (TRIM
+will complete before reaching 100%). Removing or detaching a vdev will
+prematurely terminate an on-demand TRIM operation.
+.sp
+See the documentation for the \fBautotrim\fR property above for a description
+of the vdevs on which \fBzpool trim\fR is supported.
+.sp
+.ne 2
+.na
+\fB\fB-p\fR
+.ad
+.RS 6n
+Causes a "partial" trim to be initiated in which space never
+been allocated by ZFS is not trimmed.  This option is useful for certain
+storage backends such as large thinly-provisioned SANS on which large
+trim operations are slow.
+.RE
+.sp
+.ne 2
+.na
+\fB\fB-r\fR \fIrate\fR
+.ad
+.RS 6n
+Controls the speed at which the TRIM operation progresses. Without this
+option, TRIM is executed in parallel on all top-level vdevs as quickly
+as possible. This option allows you to control how fast (in bytes per
+second) the TRIM is executed. This rate is applied on a per-vdev basis,
+i.e. every top-level vdev in the pool tries to match this speed.
+.sp
+Due to limitations in how the algorithm is designed, TRIMs are executed
+in whole-metaslab increments. Each top-level vdev contains approximately
+200 metaslabs, so a rate-limited TRIM progresses in steps, i.e. it TRIMs
+one metaslab completely and then waits for a while so that over the
+whole device, the speed averages out.
+.sp
+When an on-demand TRIM operation is already in progress, this option
+changes its rate. To change a rate-limited TRIM to an unlimited one,
+simply execute the \fBzpool trim\fR command without a \fB-r\fR option.
+.RE
+.sp
+.ne 2
+.na
+\fB\fB-s\fR\fR
+.ad
+.RS 6n
+Stop trimming. If an on-demand TRIM operation is not ongoing at the
+moment, this does nothing and the command returns success.
 .RE
 
 .RE
