@@ -2,7 +2,7 @@
 set -e
 set -xv
 
-: ${PPA:=ppa:disqus/nginx}
+: ${PPA:=ppa:trevorjay/zfs}
 
 on_exit() {
     git checkout master || :
