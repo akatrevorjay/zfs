@@ -71,7 +71,8 @@ tests = [ 'clean_mirror_001_pos', 'clean_mirror_002_pos',
     'clean_mirror_003_pos', 'clean_mirror_004_pos']
 
 [tests/functional/cli_root/zdb]
-tests = ['zdb_001_neg', 'zdb_002_pos']
+tests = ['zdb_001_neg', 'zdb_002_pos', 'zdb_003_pos', 'zdb_004_pos',
+    'zdb_005_pos']
 pre =
 post =
 
@@ -229,7 +230,8 @@ tests = ['zpool_001_neg', 'zpool_002_pos', 'zpool_003_pos']
 # zpool_add_006_pos - https://github.com/zfsonlinux/zfs/issues/3484
 [tests/functional/cli_root/zpool_add]
 tests = ['zpool_add_001_pos', 'zpool_add_002_pos', 'zpool_add_003_pos',
-    'zpool_add_007_neg', 'zpool_add_008_neg', 'zpool_add_009_neg']
+    'zpool_add_007_neg', 'zpool_add_008_neg', 'zpool_add_009_neg',
+    'add-o_ashift']
 
 [tests/functional/cli_root/zpool_attach]
 tests = ['zpool_attach_001_neg']
@@ -409,6 +411,9 @@ tests = ['devices_003_pos']
 [tests/functional/exec]
 tests = ['exec_001_pos']
 
+[tests/functional/fault]
+tests = ['auto_online_001_pos']
+
 [tests/functional/features/async_destroy]
 tests = ['async_destroy_001_pos']
 
@@ -563,11 +568,11 @@ tests = ['reservation_001_pos', 'reservation_002_pos', 'reservation_003_pos',
 
 # DISABLED:
 # rsend_008_pos - Fails for OpenZFS on illumos
+# rsend_009_pos - https://github.com/zfsonlinux/zfs/issues/5887
 # rsend_020_pos - ASSERTs in dump_record()
 [tests/functional/rsend]
 tests = ['rsend_001_pos', 'rsend_002_pos', 'rsend_003_pos', 'rsend_004_pos',
     'rsend_005_pos', 'rsend_006_pos', 'rsend_007_pos',
-    'rsend_009_pos',
     'rsend_010_pos', 'rsend_011_pos', 'rsend_012_pos',
     'rsend_013_pos', 'rsend_014_pos', 'rsend_019_pos',
     'rsend_021_pos', 'rsend_022_pos', 'rsend_024_pos']

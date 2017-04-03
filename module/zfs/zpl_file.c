@@ -605,14 +605,14 @@ static int
 zpl_writepages(struct address_space *mapping, struct writeback_control *wbc)
 {
 	znode_t		*zp = ITOZ(mapping->host);
-	zfs_sb_t	*zsb = ITOZSB(mapping->host);
+	zfsvfs_t	*zfsvfs = ITOZSB(mapping->host);
 	enum writeback_sync_modes sync_mode;
 	int result;
 
-	ZFS_ENTER(zsb);
-	if (zsb->z_os->os_sync == ZFS_SYNC_ALWAYS)
+	ZFS_ENTER(zfsvfs);
+	if (zfsvfs->z_os->os_sync == ZFS_SYNC_ALWAYS)
 		wbc->sync_mode = WB_SYNC_ALL;
-	ZFS_EXIT(zsb);
+	ZFS_EXIT(zfsvfs);
 	sync_mode = wbc->sync_mode;
 
 	/*
@@ -625,11 +625,11 @@ zpl_writepages(struct address_space *mapping, struct writeback_control *wbc)
 	wbc->sync_mode = WB_SYNC_NONE;
 	result = write_cache_pages(mapping, wbc, zpl_putpage, mapping);
 	if (sync_mode != wbc->sync_mode) {
-		ZFS_ENTER(zsb);
+		ZFS_ENTER(zfsvfs);
 		ZFS_VERIFY_ZP(zp);
-		if (zsb->z_log != NULL)
-			zil_commit(zsb->z_log, zp->z_id);
-		ZFS_EXIT(zsb);
+		if (zfsvfs->z_log != NULL)
+			zil_commit(zfsvfs->z_log, zp->z_id);
+		ZFS_EXIT(zfsvfs);
 
 		/*
 		 * We need to call write_cache_pages() again (we can't just
@@ -856,9 +856,15 @@ const struct file_operations zpl_file_operations = {
 	.release	= zpl_release,
 	.llseek		= zpl_llseek,
 #ifdef HAVE_VFS_RW_ITERATE
+#ifdef HAVE_NEW_SYNC_READ
+	.read		= new_sync_read,
+	.write		= new_sync_write,
+#endif
 	.read_iter	= zpl_iter_read,
 	.write_iter	= zpl_iter_write,
 #else
+	.read		= do_sync_read,
+	.write		= do_sync_write,
 	.aio_read	= zpl_aio_read,
 	.aio_write	= zpl_aio_write,
 #endif

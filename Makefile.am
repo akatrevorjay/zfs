@@ -39,7 +39,12 @@ dist-hook:
 	sed -i 's/Release:[[:print:]]*/Release:      $(RELEASE)/' \
 		$(distdir)/META
 
-checkstyle: cstyle shellcheck flake8
+checkstyle: cstyle shellcheck flake8 commitcheck
+
+commitcheck:
+	@if git rev-parse --git-dir > /dev/null 2>&1; then \
+		scripts/commitcheck.sh; \
+	fi
 
 cstyle:
 	@find ${top_srcdir} -name '*.[hc]' ! -name 'zfs_config.*' \
@@ -47,11 +52,15 @@ cstyle:
 
 shellcheck:
 	@if type shellcheck > /dev/null 2>&1; then \
-		(find ${top_srcdir} -type f -name '*.sh.in' -o -type f \
-		 -name '*.sh'; find etc/init.d/zfs*.in -type f) | \
+		shellcheck --exclude=SC1090 --format gcc scripts/paxcheck.sh \
+			scripts/zloop.sh \
+			scripts/zfs-tests.sh \
+			scripts/zfs.sh; \
+			scripts/commitcheck.sh; \
+		(find cmd/zed/zed.d/*.sh -type f) | \
 		 grep -v 'zfs-script-config' | \
 		 while read file; do \
-			shellcheck --format gcc "$$file"; \
+			shellcheck --exclude=SC1090 --format gcc "$$file"; \
 		 done; \
 	 fi
 
@@ -59,7 +68,8 @@ lint: cppcheck paxcheck
 
 cppcheck:
 	@if type cppcheck > /dev/null 2>&1; then \
-		cppcheck --quiet --force --error-exitcode=2 ${top_srcdir}; \
+		cppcheck --inline-suppr --quiet --force --error-exitcode=2 \
+		${top_srcdir}; \
 	fi
 
 paxcheck:
