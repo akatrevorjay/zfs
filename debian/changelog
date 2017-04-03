@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc3-1ubuntu1~9.gbpcf08bf) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc3-1ubuntu1~10.gbp8bed9b) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @cf08bf1517672c6e7dfedb40a9993733a09ad071 **
+  ** SNAPSHOT build @8bed9b3283dc95ccf4a90267ec571aa1d69eb02d **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -417,6 +417,207 @@ zfs-linux (0.7.0-rc3-1ubuntu1~9.gbpcf08bf) UNRELEASED; urgency=medium
   [ Trevor Joynson (trevorj) ]
   * Bump
   * No pristine
+
+  [ Trevor Joynson (Debian) ]
+
+  [ Tim Chase ]
+  * Refresh dkio.h and add dkioc_free_util.h
+
+  [ Saso Kiselkov ]
+  * 6363 Add UNMAP/TRIM functionality to ZFS
+
+  [ Tim Chase ]
+  * Stop autotrim tasks before freeing zios
+  * Fix vdev_raidz_psize_floor()
+  * Don't lock rt_lock in range_tree_verify()
+  * Add "zpool trim -p" to initiate a partial trim
+  * Add TRIM tests to the test suite
+  * Wait for trimming to finish in metaslab_fini
+
+  [ Isaac Huang ]
+  * Fix incorrect spare vdev state after replacing
+
+  [ Giuseppe Di Natale ]
+  * Allow zfs-tests to run a single test
+
+  [ Matthew Ahrens ]
+  * OpenZFS 7337 - inherit_001_pos occasionally times out
+
+  [ Andriy Gapon ]
+  * OpenZFS 7199 - dsl_dataset_rollback_sync may try to free already free blocks
+
+  [ Prakash Surya ]
+  * OpenZFS 7761 - bootfs_005_neg's pool destruction must handle EBUSY
+
+  [ Daniel Hoffman ]
+  * OpenZFS 7812 - Remove gender specific language
+
+  [ Ahmed G ]
+  * OpenZFS 7736 - ZFS Performance tests should log FIO summary output
+
+  [ Tim Crawford ]
+  * Fix checksumflags assignment in cksummer
+
+  [ Isaac Huang ]
+  * ABD style cleanups
+
+  [ Matthew Ahrens ]
+  * Clean up by-dnode code in dmu_tx.c
+
+  [ Matt Kemp ]
+  * Fix initramfs hook for merged /usr/lib and /lib
+
+  [ Tim Chase ]
+  * Format an error message when the ZFS_IOC_POOL_TRIM fails
+
+  [ Olaf Faaland ]
+  * Linux 4.11 compat: avoid refcount_t name conflict
+
+  [ Sydney Vanda ]
+  * Add auto-online test for ZED/FMA as part of the ZTS
+
+  [ Giuseppe Di Natale ]
+  * Bug fixes for single test runs in zfs-tests
+  * Reduce size of zvol and enforce 4k blocksize in zvol tests
+
+  [ Brian Behlendorf ]
+  * Fix powerpc build
+
+  [ Chunwei Chen ]
+  * Fix loop device becomes read-only
+
+  [ Olaf Faaland ]
+  * Dump unique configurations and Uberblocks in zdb -lu
+
+  [ Brian Behlendorf ]
+  * OpenZFS 7843 - get_clones_stat() is suboptimal for lots of clones
+  * OpenZFS 7793 - ztest fails assertion in dmu_tx_willuse_space
+
+  [ bunder2015 ]
+  * Fix multi-line error messages in blkdev_compat.h
+
+  [ Gvozden Neskovic ]
+  * [icp] fpu and asm cleanup for linux
+
+  [ bunder2015 ]
+  * Corrected highlight for zpool man page
+
+  [ Andriy Gapon ]
+  * OpenZFS 7867 - ARC space accounting leak
+
+  [ Tony Hutter ]
+  * Fix harmless "BARRIER is deprecated" kernel warning on Centos 6.8
+
+  [ Chunwei Chen ]
+  * Fix nfs snapdir automount
+
+  [ Giuseppe Di Natale ]
+  * Enable shellcheck to run for select scripts
+  * Correct arc_summary and dbufstat python style
+  * Suppress cppcheck nullPointer error in zfs_write
+
+  [ Brian Behlendorf ]
+  * Fix ZVOL BLKFLSBUF ioctl
+  * Rename zfs_sb_t -> zfsvfs_t
+  * Rename zfs_* functions
+  * Restructure mount option handling
+
+  [ Matthew Ahrens ]
+  * OpenZFS 6874 - rollback and receive need to reset ZPL state to what's on disk
+  * OpenZFS 7801 - add more by-dnode routines (lint)
+
+  [ DeHackEd ]
+  * zfs(8) fixes
+
+  [ Olaf Faaland ]
+  * Linux 4.11 compat: iops.getattr and friends
+
+  [ Matthew Ahrens ]
+  * OpenZFS 7968 - multi-threaded spa_sync()
+
+  [ John Paul Adrian Glaubitz ]
+  * libspl: Fix incorrect use of platform defines on sparc64
+
+  [ wli5 ]
+  * GZIP compression offloading with QAT accelerator
+
+  [ Brian Behlendorf ]
+  * Fix `zpool status -v` error message
+
+  [ George Wilson ]
+  * OpenZFS 3821 - Race in rollback, zil close, and zil flush
+
+  [ Brian Behlendorf ]
+  * Fix undefined reference to `libzfs_fru_compare'
+  * Retry zfs_znode_alloc() in zfs_mknode()
+
+  [ LOLi ]
+  * Fix 'zdb -o' segmentation fault
+
+  [ Brian Behlendorf ]
+  * Allow c99 when building ZFS in the kernel tree
+
+  [ wli5 ]
+  * Update documentation for new parameter "zfs_qat_disable"
+
+  [ Brian Behlendorf ]
+  * Disable rsend_009_pos
+
+  [ Sen Haerens ]
+  * Fix "undefined reference to xdr_control" when building raidz_test cmd
+
+  [ Chunwei Chen ]
+  * Fix wrong offset args in vdev_cache_write
+
+  [ LOLi ]
+  * Check ashift validity in 'zpool add'
+
+  [ Giuseppe Di Natale ]
+  * OpenZFS 7990 - libzfs: snapspec_cb() does not need to call zfs_strdup()
+
+  [ Gvozden Neskovic ]
+  * Remove dependency on linear ABD
+
+  [ Brian Behlendorf ]
+  * Fix add-o_ashift.ksh permissions
+
+  [ Olaf Faaland ]
+  * glibc 2.5 compat: use correct header for makedev() et al.
+
+  [ Giuseppe Di Natale ]
+  * Commit message format in contributing guidelines
+
+  [ Trevor Joynson (trevorj) ]
+  * Import 0.6.5.7-0ubuntu3
+  * gbp changes
+  * Bump ver
+  * -j9 baby
+  * Up
+  * Yup
+  * Add new module
+  * Up
+  * Up
+  * Bump
+  * Grr
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * yay
+  * yay
+  * yay
+  * Update ppa script
+  * Update gbp conf with br changes
+  * Update gbp conf with br changes
+  * Bump
+  * No pristine
+  * Bump
+  * Lol whoops
+  * Fix name
+  * Fix name
+  * rebase
 
   [ Trevor Joynson (Debian) ]
 
