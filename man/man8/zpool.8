@@ -1683,11 +1683,13 @@ Display full paths for vdevs instead of only the last component of the path.  Th
 \fB\fB-r\fR\fR
 .ad
 .RS 12n
-Print request size histograms for the leaf ZIOs.  This includes histograms of
-individual ZIOs ("ind") and aggregate ZIOs ("agg").  These stats can be useful
-for seeing how well the ZFS IO aggregator is working.  Do not confuse these
-request size stats with the block layer requests; it's possible ZIOs can
-be broken up before being sent to the block device.
+Print request size histograms for the leaf vdev's IO.  This includes histograms
+of individual IOs ("ind") and aggregate IOs ("agg").  TRIM IOs will not be
+aggregated and are split in to automatic ("auto") and manual ("man").  TRIM
+requests which exceed 16M in size are counted as 16M requests.  These stats
+can be useful for seeing how well the ZFS IO aggregator is working.  Do not
+confuse these request size stats with the block layer requests; it's possible
+these IOs will be broken up or merged before being sent to the block device.
 .RE
 
 .sp
@@ -1752,8 +1754,13 @@ scrub:
 .ad
 .RS 20n
 Amount of time IO spent in scrub queue. Does not include disk time.
-
-
+.RE
+.ne 2
+.na
+trim:
+.ad
+.RS 20n
+Amount of time IO spent in trim queue. Does not include disk time.
 .RE
 
 All histogram buckets are power-of-two sized.  The time labels are the end
@@ -1807,6 +1814,13 @@ scrub:
 .RS 20n
 Average queuing time in scrub queue.  Does not include disk time.
 .RE
+.ne 2
+.na
+trim:
+.ad
+.RS 20n
+Average queuing time in trim queue.  Does not include disk time.
+.RE
 
 .RE
 .sp
@@ -1840,6 +1854,13 @@ scrubq_read:
 .ad
 .RS 20n
 Current number of entries in scrub queue.
+.RE
+.ne 2
+.na
+auto/man_trimq:
+.ad
+.RS 20n
+Current number of entries in automatic or manual trim queues.
 .RE
 
 All queue statistics are instantaneous measurements of the number of entries
