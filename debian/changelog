@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc3-1ubuntu1~10.gbp8bed9b) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc3-1ubuntu1~11.gbp9c58a1) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @8bed9b3283dc95ccf4a90267ec571aa1d69eb02d **
+  ** SNAPSHOT build @9c58a12d45b8e8728140185c497308e0421e6cb1 **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -621,7 +621,242 @@ zfs-linux (0.7.0-rc3-1ubuntu1~10.gbp8bed9b) UNRELEASED; urgency=medium
 
   [ Trevor Joynson (Debian) ]
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 24 Dec 2016 17:07:19 -0800
+  [ George Melikov ]
+  * zfs_get_005_neg.ksh fix typos
+
+  [ Giuseppe Di Natale ]
+  * Prevent commitcheck.sh from running twice
+
+  [ N Clark ]
+  * Additional Information for Zedlets
+
+  [ Tom Matthews ]
+  * list -o props should be alloc,free not used,avail
+
+  [ Steven Hartland ]
+  * OpenZFS 7885 - zpool list can report 16.0e for expandsz
+
+  [ Giuseppe Di Natale ]
+  * Fix coverity defects: CID 161264
+
+  [ Don Brady ]
+  * Fix regression in zfs_ereport_start()
+
+  [ Håkan Johansson ]
+  * Accept raidz and mirror with similar redundancy
+
+  [ Sydney Vanda ]
+  * Added auto-replace FMA test for the ZFS Test Suite
+
+  [ John Wren Kennedy ]
+  * OpenZFS 7290 - ZFS test suite needs to control what utilities it can run
+
+  [ Giuseppe Di Natale ]
+  * Fix coverity defects: CID 161288
+
+  [ Brian Behlendorf ]
+  * Skip xfstests on Amazon Linux
+
+  [ Giuseppe Di Natale ]
+  * Correct shellcheck make recipe
+
+  [ Brian Behlendorf ]
+  * OpenZFS 7629 - Fix for 7290 neglected to remove some escape sequences
+
+  [ Toomas Soome ]
+  * OpenZFS 7404 - rootpool_007_neg, bootfs_006_pos and bootfs_008_neg tests fail with the loader project bits
+
+  [ George Melikov ]
+  * zfstests cli_user/misc/setup.ksh space missed
+  * zfs_receive_010_pos.ksh local => typeset change
+
+  [ Andriy Gapon ]
+  * OpenZFS 8027 - tighten up dsl_pool_dirty_delta
+
+  [ Pedro Giffuni ]
+  * OpenZFS 8046 - Let calloc() do the multiplication in libzfs_fru_refresh
+
+  [ Andriy Gapon ]
+  * OpenZFS 5380 - receive of a send -p stream doesn't need to try renaming snapshots
+
+  [ George Wilson ]
+  * OpenZFS 8023 - Panic destroying a metaslab deferred range tree
+
+  [ George Melikov ]
+  * zfstest reservation_009_pos.sh missed backslash
+  * zfstest - replace dircmp with diff
+
+  [ Giuseppe Di Natale ]
+  * OpenZFS 2932 - support crash dumps to raidz, etc. pools
+
+  [ Matthew Ahrens ]
+  * OpenZFS 8005 - poor performance of 1MB writes on certain RAID-Z configurations
+
+  [ LOLi ]
+  * Fix size inflation in spa_get_worst_case_asize()
+
+  [ Yuri Pankov ]
+  * OpenZFS 6865 - want zfs-tests cases for zpool labelclear command
+
+  [ Giuseppe Di Natale ]
+  * Skip rate limiting events in zfs_ereport_post
+
+  [ Brian Behlendorf ]
+  * OpenZFS 7535 - need test for resumed send of top most filesystem
+
+  [ Richard Yao ]
+  * Add missing includes to zed_log.c
+  * Fix `zpool iostat -T d 1` on musl
+  * Fix header inclusions for standards conformance
+
+  [ Brian Behlendorf ]
+  * OpenZFS 7503 - zfs-test should tail ::zfs_dbgmsg on test failure
+
+  [ Giuseppe Di Natale ]
+  * Invalidate cache during a zpool labelclear
+
+  [ Brian Behlendorf ]
+  * OpenZFS 5120 - zfs should allow large block/gzip/raidz boot pool (loader project)
+  * OpenZFS 6410 - teach zdb to perform object lookups by path
+
+  [ Debabrata Banerjee ]
+  * SEEK_HOLE should not block on txg_wait_synced()
+
+  [ Andriy Gapon ]
+  * OpenZFS 8026 - retire zfs_throttle_delay and zfs_throttle_resolution
+  * OpenZFS 6101 - attempt to lzc_create() a filesystem under a volume results in a panic
+
+  [ Alan Somers ]
+  * OpenZFS 7900 - zdb shouldn't print the path of a znode at verbosity < 5
+
+  [ Matthew Ahrens ]
+  * OpenZFS 8061 - sa_find_idx_tab can be declared more type-safely
+
+  [ DHE ]
+  * Increase zfs_vdev_async_write_min_active to 2
+
+  [ George Melikov ]
+  * zfstest: add dmesg command to $PATH
+
+  [ Giuseppe Di Natale ]
+  * Clean up correctly in zpool_scrub_004_pos
+
+  [ Richard Yao ]
+  * OpenZFS 6392 - zdb: introduce -V for verbatim import
+
+  [ Tim Crawford ]
+  * Fix leak in send_iterate_fs
+
+  [ Tim Chase ]
+  * Refresh dkio.h and add dkioc_free_util.h
+
+  [ Saso Kiselkov ]
+  * 6363 Add UNMAP/TRIM functionality to ZFS
+
+  [ Tim Chase ]
+  * Want manual trim feature to skip never-allocated space
+
+  [ Saso Kiselkov ]
+  * Trimming an offlined vdev asserts in zio_create.
+
+  [ Tim Chase ]
+  * Want extended zpool iostat trim support
+
+  [ Saso Kiselkov ]
+  * Matt Ahrens' review comments, round 2. Brian Behlendorf's review comments.
+
+  [ Brian Behlendorf ]
+  * Async TRIM, Extended Stats
+
+  [ George Melikov ]
+  * zfs_receive_010_pos: change dd arguments
+
+  [ LOLi ]
+  * Allow bookmark short name in 'zfs bookmark'
+
+  [ Ned Bass ]
+  * vdev_id: fix failure due to multipath -l bug
+
+  [ LOLi ]
+  * Documentation fixes for zfs(8) and 'zfs' binary
+
+  [ Tony Hutter ]
+  * Prebaked scripts for zpool status/iostat -c
+
+  [ Olaf Faaland ]
+  * Correct lock ASSERTs in vdev_label_read/write
+
+  [ Tony Hutter ]
+  * Fix shellcheck warning in pre-baked script
+
+  [ dbavatar ]
+  * Fix lseek result when dnode is dirty
+
+  [ Don Brady ]
+  * Fixed zdb -e regression for active cacheless pools
+
+  [ DeHackEd ]
+  * Fix 'zpool iostat -v' cache and log output
+  * Typo in zfs-module-parameters(5)
+
+  [ Matthew Ahrens ]
+  * OpenZFS 8025 - dbuf_read() creates unnecessary zio_root() for bonus buf
+
+  [ bunder2015 ]
+  * Fix typo in zfs-module-parameters man page
+
+  [ wli5 ]
+  * Change U16 to U32 due to atomic_inc_32_nv
+
+  [ Dan Kimmel ]
+  * OpenZFS 7252 - compressed zfs send / receive
+
+  [ Tim Chase ]
+  * Update documentation for zfs_vdev_queue_depth_pct
+
+  [ Chunwei Chen ]
+  * Reinstate zvol_taskq to fix aio on zvol
+
+  [ Brian Behlendorf ]
+  * Review feedback
+  * Fix abd_alloc_sametype() panic
+
+  [ Trevor Joynson (trevorj) ]
+  * Import 0.6.5.7-0ubuntu3
+  * gbp changes
+  * Bump ver
+  * -j9 baby
+  * Up
+  * Yup
+  * Add new module
+  * Up
+  * Up
+  * Bump
+  * Grr
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * yay
+  * yay
+  * yay
+  * Update ppa script
+  * Update gbp conf with br changes
+  * Update gbp conf with br changes
+  * Bump
+  * No pristine
+  * Bump
+  * Lol whoops
+  * Fix name
+  * Fix name
+  * rebase
+  * Bump
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sun, 30 Apr 2017 05:57:11 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
