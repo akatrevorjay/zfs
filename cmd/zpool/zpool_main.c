@@ -21,7 +21,7 @@
 
 /*
  * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2011 Nexenta Systems, Inc. All rights reserved.
+ * Copyright 2017 Nexenta Systems, Inc. All rights reserved.
  * Copyright (c) 2011, 2015 by Delphix. All rights reserved.
  * Copyright (c) 2012 by Frederik Wessels. All rights reserved.
  * Copyright (c) 2012 by Cyril Plisko. All rights reserved.
@@ -88,6 +88,7 @@ static int zpool_do_replace(int, char **);
 static int zpool_do_split(int, char **);
 
 static int zpool_do_scrub(int, char **);
+static int zpool_do_trim(int, char **);
 
 static int zpool_do_import(int, char **);
 static int zpool_do_export(int, char **);
@@ -137,6 +138,7 @@ typedef enum {
 	HELP_REPLACE,
 	HELP_REMOVE,
 	HELP_SCRUB,
+	HELP_TRIM,
 	HELP_STATUS,
 	HELP_UPGRADE,
 	HELP_EVENTS,
@@ -175,7 +177,7 @@ enum iostat_type {
  * of all the nvlists a flag requires.  Also specifies the order in
  * which data gets printed in zpool iostat.
  */
-static const char *vsx_type_to_nvlist[IOS_COUNT][11] = {
+static const char *vsx_type_to_nvlist[IOS_COUNT][13] = {
 	[IOS_L_HISTO] = {
 	    ZPOOL_CONFIG_VDEV_TOT_R_LAT_HISTO,
 	    ZPOOL_CONFIG_VDEV_TOT_W_LAT_HISTO,
@@ -186,12 +188,17 @@ static const char *vsx_type_to_nvlist[IOS_COUNT][11] = {
 	    ZPOOL_CONFIG_VDEV_ASYNC_R_LAT_HISTO,
 	    ZPOOL_CONFIG_VDEV_ASYNC_W_LAT_HISTO,
 	    ZPOOL_CONFIG_VDEV_SCRUB_LAT_HISTO,
+	    ZPOOL_CONFIG_VDEV_AUTO_TRIM_LAT_HISTO,
+	    ZPOOL_CONFIG_VDEV_MAN_TRIM_LAT_HISTO,
 	    NULL},
 	[IOS_LATENCY] = {
 	    ZPOOL_CONFIG_VDEV_TOT_R_LAT_HISTO,
 	    ZPOOL_CONFIG_VDEV_TOT_W_LAT_HISTO,
 	    ZPOOL_CONFIG_VDEV_DISK_R_LAT_HISTO,
 	    ZPOOL_CONFIG_VDEV_DISK_W_LAT_HISTO,
+	    ZPOOL_CONFIG_VDEV_SCRUB_LAT_HISTO,
+	    ZPOOL_CONFIG_VDEV_AUTO_TRIM_LAT_HISTO,
+	    ZPOOL_CONFIG_VDEV_MAN_TRIM_LAT_HISTO,
 	    NULL},
 	[IOS_QUEUES] = {
 	    ZPOOL_CONFIG_VDEV_SYNC_R_ACTIVE_QUEUE,
@@ -199,6 +206,8 @@ static const char *vsx_type_to_nvlist[IOS_COUNT][11] = {
 	    ZPOOL_CONFIG_VDEV_ASYNC_R_ACTIVE_QUEUE,
 	    ZPOOL_CONFIG_VDEV_ASYNC_W_ACTIVE_QUEUE,
 	    ZPOOL_CONFIG_VDEV_SCRUB_ACTIVE_QUEUE,
+	    ZPOOL_CONFIG_VDEV_AUTO_TRIM_ACTIVE_QUEUE,
+	    ZPOOL_CONFIG_VDEV_MAN_TRIM_ACTIVE_QUEUE,
 	    NULL},
 	[IOS_RQ_HISTO] = {
 	    ZPOOL_CONFIG_VDEV_SYNC_IND_R_HISTO,
@@ -211,6 +220,8 @@ static const char *vsx_type_to_nvlist[IOS_COUNT][11] = {
 	    ZPOOL_CONFIG_VDEV_ASYNC_AGG_W_HISTO,
 	    ZPOOL_CONFIG_VDEV_IND_SCRUB_HISTO,
 	    ZPOOL_CONFIG_VDEV_AGG_SCRUB_HISTO,
+	    ZPOOL_CONFIG_VDEV_IND_AUTO_TRIM_HISTO,
+	    ZPOOL_CONFIG_VDEV_IND_MAN_TRIM_HISTO,
 	    NULL},
 };
 
@@ -261,6 +272,8 @@ static zpool_command_t command_table[] = {
 	{ "split",	zpool_do_split,		HELP_SPLIT		},
 	{ NULL },
 	{ "scrub",	zpool_do_scrub,		HELP_SCRUB		},
+	{ NULL },
+	{ "trim",	zpool_do_trim,		HELP_TRIM		},
 	{ NULL },
 	{ "import",	zpool_do_import,	HELP_IMPORT		},
 	{ "export",	zpool_do_export,	HELP_EXPORT		},
@@ -338,6 +351,8 @@ get_usage(zpool_help_t idx)
 		return (gettext("\treopen <pool>\n"));
 	case HELP_SCRUB:
 		return (gettext("\tscrub [-s] <pool> ...\n"));
+	case HELP_TRIM:
+		return (gettext("\ttrim [-s|-r <rate>] <pool> ...\n"));
 	case HELP_STATUS:
 		return (gettext("\tstatus [-c [script1,script2,...]] [-gLPvxD]"
 		    "[-T d|u] [pool] ... [interval [count]]\n"));
@@ -2713,21 +2728,22 @@ typedef struct name_and_columns {
 	unsigned int columns;	/* Center name to this number of columns */
 } name_and_columns_t;
 
-#define	IOSTAT_MAX_LABELS	11	/* Max number of labels on one line */
+#define	IOSTAT_MAX_LABELS	15	/* Max number of labels on one line */
 
 static const name_and_columns_t iostat_top_labels[][IOSTAT_MAX_LABELS] =
 {
 	[IOS_DEFAULT] = {{"capacity", 2}, {"operations", 2}, {"bandwidth", 2},
 	    {NULL}},
 	[IOS_LATENCY] = {{"total_wait", 2}, {"disk_wait", 2}, {"syncq_wait", 2},
-	    {"asyncq_wait", 2}, {"scrub"}},
+	    {"asyncq_wait", 2}, {"scrub"}, {"atrim"}, {"mtrim"}},
 	[IOS_QUEUES] = {{"syncq_read", 2}, {"syncq_write", 2},
 	    {"asyncq_read", 2}, {"asyncq_write", 2}, {"scrubq_read", 2},
-	    {NULL}},
+	    {"auto_trimq", 2}, {"man_trimq", 2}, {NULL}},
 	[IOS_L_HISTO] = {{"total_wait", 2}, {"disk_wait", 2},
 	    {"sync_queue", 2}, {"async_queue", 2}, {NULL}},
 	[IOS_RQ_HISTO] = {{"sync_read", 2}, {"sync_write", 2},
-	    {"async_read", 2}, {"async_write", 2}, {"scrub", 2}, {NULL}},
+	    {"async_read", 2}, {"async_write", 2}, {"scrub", 2},
+	    {"trim", 2}, {NULL}},
 
 };
 
@@ -2737,13 +2753,16 @@ static const name_and_columns_t iostat_bottom_labels[][IOSTAT_MAX_LABELS] =
 	[IOS_DEFAULT] = {{"alloc"}, {"free"}, {"read"}, {"write"}, {"read"},
 	    {"write"}, {NULL}},
 	[IOS_LATENCY] = {{"read"}, {"write"}, {"read"}, {"write"}, {"read"},
-	    {"write"}, {"read"}, {"write"}, {"wait"}, {NULL}},
+	    {"write"}, {"read"}, {"write"}, {"wait"}, {"wait"},
+	    {"wait"}, {NULL}},
 	[IOS_QUEUES] = {{"pend"}, {"activ"}, {"pend"}, {"activ"}, {"pend"},
-	    {"activ"}, {"pend"}, {"activ"}, {"pend"}, {"activ"}, {NULL}},
+	    {"activ"}, {"pend"}, {"activ"}, {"pend"}, {"activ"},
+	    {"pend"}, {"activ"}, {"pend"}, {"activ"}, {NULL}},
 	[IOS_L_HISTO] = {{"read"}, {"write"}, {"read"}, {"write"}, {"read"},
-	    {"write"}, {"read"}, {"write"}, {"scrub"}, {NULL}},
+	    {"write"}, {"read"}, {"write"}, {"scrub"}, {"atrim"},
+	    {"mtrim"}, {NULL}},
 	[IOS_RQ_HISTO] = {{"ind"}, {"agg"}, {"ind"}, {"agg"}, {"ind"}, {"agg"},
-	    {"ind"}, {"agg"}, {"ind"}, {"agg"}, {NULL}},
+	    {"ind"}, {"agg"}, {"ind"}, {"agg"}, {"auto"}, {"man"}, {NULL}},
 };
 
 static const char *histo_to_title[] = {
@@ -3367,6 +3386,10 @@ print_iostat_queues(iostat_cbdata_t *cb, nvlist_t *oldnv,
 		ZPOOL_CONFIG_VDEV_ASYNC_W_ACTIVE_QUEUE,
 		ZPOOL_CONFIG_VDEV_SCRUB_PEND_QUEUE,
 		ZPOOL_CONFIG_VDEV_SCRUB_ACTIVE_QUEUE,
+		ZPOOL_CONFIG_VDEV_AUTO_TRIM_PEND_QUEUE,
+		ZPOOL_CONFIG_VDEV_AUTO_TRIM_ACTIVE_QUEUE,
+		ZPOOL_CONFIG_VDEV_MAN_TRIM_PEND_QUEUE,
+		ZPOOL_CONFIG_VDEV_MAN_TRIM_ACTIVE_QUEUE,
 	};
 
 	struct stat_array *nva;
@@ -3405,6 +3428,8 @@ print_iostat_latency(iostat_cbdata_t *cb, nvlist_t *oldnv,
 		ZPOOL_CONFIG_VDEV_ASYNC_R_LAT_HISTO,
 		ZPOOL_CONFIG_VDEV_ASYNC_W_LAT_HISTO,
 		ZPOOL_CONFIG_VDEV_SCRUB_LAT_HISTO,
+		ZPOOL_CONFIG_VDEV_AUTO_TRIM_LAT_HISTO,
+		ZPOOL_CONFIG_VDEV_MAN_TRIM_LAT_HISTO,
 	};
 	struct stat_array *nva;
 
@@ -5698,6 +5723,32 @@ scrub_callback(zpool_handle_t *zhp, void *data)
 	return (err != 0);
 }
 
+typedef struct trim_cbdata {
+	boolean_t	cb_start;
+	uint64_t	cb_rate;
+	boolean_t	cb_fulltrim;
+} trim_cbdata_t;
+
+int
+trim_callback(zpool_handle_t *zhp, void *data)
+{
+	trim_cbdata_t *cb = data;
+	int err;
+
+	/*
+	 * Ignore faulted pools.
+	 */
+	if (zpool_get_state(zhp) == POOL_STATE_UNAVAIL) {
+		(void) fprintf(stderr, gettext("cannot trim '%s': pool is "
+		    "currently unavailable\n"), zpool_get_name(zhp));
+		return (1);
+	}
+
+	err = zpool_trim(zhp, cb->cb_start, cb->cb_rate, cb->cb_fulltrim);
+
+	return (err != 0);
+}
+
 /*
  * zpool scrub [-s] <pool> ...
  *
@@ -5735,6 +5786,57 @@ zpool_do_scrub(int argc, char **argv)
 	}
 
 	return (for_each_pool(argc, argv, B_TRUE, NULL, scrub_callback, &cb));
+}
+
+/*
+ * zpool trim [-s|-r <rate>] <pool> ...
+ *
+ *	-p		Partial trim.  Skips never-allocated space.
+ *	-s		Stop. Stops any in-progress trim.
+ *	-r <rate>	Sets the TRIM rate.
+ */
+int
+zpool_do_trim(int argc, char **argv)
+{
+	int c;
+	trim_cbdata_t cb;
+
+	cb.cb_start = B_TRUE;
+	cb.cb_rate = 0;
+	cb.cb_fulltrim = B_TRUE;
+
+	/* check options */
+	while ((c = getopt(argc, argv, "psr:")) != -1) {
+		switch (c) {
+		case 'p':
+			cb.cb_fulltrim = B_FALSE;
+			break;
+		case 's':
+			cb.cb_start = B_FALSE;
+			break;
+		case 'r':
+			if (zfs_nicestrtonum(NULL, optarg, &cb.cb_rate) == -1) {
+				(void) fprintf(stderr,
+				    gettext("invalid value for rate\n"));
+				usage(B_FALSE);
+			}
+			break;
+		case '?':
+			(void) fprintf(stderr, gettext("invalid option '%c'\n"),
+			    optopt);
+			usage(B_FALSE);
+		}
+	}
+
+	argc -= optind;
+	argv += optind;
+
+	if (argc < 1) {
+		(void) fprintf(stderr, gettext("missing pool name argument\n"));
+		usage(B_FALSE);
+	}
+
+	return (for_each_pool(argc, argv, B_TRUE, NULL, trim_callback, &cb));
 }
 
 /*
@@ -5850,6 +5952,59 @@ print_scan_status(pool_scan_stat_t *ps)
 }
 
 static void
+print_trim_status(uint64_t trim_prog, uint64_t total_size, uint64_t rate,
+    uint64_t start_time_u64, uint64_t end_time_u64)
+{
+	time_t start_time = start_time_u64, end_time = end_time_u64;
+	char *buf;
+
+	assert(trim_prog <= total_size);
+	if (trim_prog != 0 && trim_prog != total_size) {
+		buf = ctime(&start_time);
+		buf[strlen(buf) - 1] = '\0';	/* strip trailing newline */
+		if (rate != 0) {
+			char rate_str[32];
+			zfs_nicenum(rate, rate_str, sizeof (rate_str));
+			(void) printf("  trim: %.02f%%\tstarted: %s\t"
+			    "(rate: %s/s)\n", (((double)trim_prog) /
+			    total_size) * 100, buf, rate_str);
+		} else {
+			(void) printf("  trim: %.02f%%\tstarted: %s\t"
+			    "(rate: max)\n", (((double)trim_prog) /
+			    total_size) * 100, buf);
+		}
+	} else {
+		if (start_time != 0) {
+			/*
+			 * Non-zero start time means we were run at some point
+			 * in the past.
+			 */
+			if (end_time != 0) {
+				/* Non-zero end time means we completed */
+				time_t diff = end_time - start_time;
+				int hrs, mins;
+
+				buf = ctime(&end_time);
+				buf[strlen(buf) - 1] = '\0';
+				hrs = diff / 3600;
+				mins = (diff % 3600) / 60;
+				(void) printf(gettext("  trim: completed on %s "
+				    "(after %dh%dm)\n"), buf, hrs, mins);
+			} else {
+				buf = ctime(&start_time);
+				buf[strlen(buf) - 1] = '\0';
+				/* Zero end time means we were interrupted */
+				(void) printf(gettext("  trim: interrupted\t"
+				    "(started %s)\n"), buf);
+			}
+		} else {
+			/* trim was never run */
+			(void) printf(gettext("  trim: none requested\n"));
+		}
+	}
+}
+
+static void
 print_error_log(zpool_handle_t *zhp)
 {
 	nvlist_t *nverrlist = NULL;
@@ -5958,6 +6113,43 @@ print_dedup_stats(nvlist_t *config)
 	verify(nvlist_lookup_uint64_array(config, ZPOOL_CONFIG_DDT_HISTOGRAM,
 	    (uint64_t **)&ddh, &c) == 0);
 	zpool_dump_ddt(dds, ddh);
+}
+
+/*
+ * Calculates the total space available on log devices on the pool.
+ * For whatever reason, this is not counted in the root vdev's space stats.
+ */
+static uint64_t
+zpool_slog_space(nvlist_t *nvroot)
+{
+	nvlist_t **newchild;
+	uint_t c, children;
+	uint64_t space = 0;
+
+	verify(nvlist_lookup_nvlist_array(nvroot, ZPOOL_CONFIG_CHILDREN,
+	    &newchild, &children) == 0);
+
+	for (c = 0; c < children; c++) {
+		uint64_t islog = B_FALSE;
+		vdev_stat_t *vs;
+		uint_t n;
+		uint_t n_subchildren = 1;
+		nvlist_t **subchild;
+
+		(void) nvlist_lookup_uint64(newchild[c], ZPOOL_CONFIG_IS_LOG,
+		    &islog);
+		if (!islog)
+			continue;
+		verify(nvlist_lookup_uint64_array(newchild[c],
+		    ZPOOL_CONFIG_VDEV_STATS, (uint64_t **)&vs, &n) == 0);
+
+		/* vdev can be non-leaf, so multiply by number of children */
+		(void) nvlist_lookup_nvlist_array(newchild[c],
+		    ZPOOL_CONFIG_CHILDREN, &subchild, &n_subchildren);
+		space += n_subchildren * vs->vs_space;
+	}
+
+	return (space);
 }
 
 /*
@@ -6255,6 +6447,7 @@ status_callback(zpool_handle_t *zhp, void *data)
 		nvlist_t **spares, **l2cache;
 		uint_t nspares, nl2cache;
 		pool_scan_stat_t *ps = NULL;
+		uint64_t trim_prog, trim_rate, trim_start_time, trim_stop_time;
 
 		(void) nvlist_lookup_uint64_array(nvroot,
 		    ZPOOL_CONFIG_SCAN_STATS, (uint64_t **)&ps, &c);
@@ -6264,6 +6457,24 @@ status_callback(zpool_handle_t *zhp, void *data)
 		    cbp->cb_name_flags | VDEV_NAME_TYPE_ID);
 		if (cbp->cb_namewidth < 10)
 			cbp->cb_namewidth = 10;
+
+		/* Grab trim stats if the pool supports it */
+		if (nvlist_lookup_uint64(config, ZPOOL_CONFIG_TRIM_PROG,
+		    &trim_prog) == 0 &&
+		    nvlist_lookup_uint64(config, ZPOOL_CONFIG_TRIM_RATE,
+		    &trim_rate) == 0 &&
+		    nvlist_lookup_uint64(config, ZPOOL_CONFIG_TRIM_START_TIME,
+		    &trim_start_time) == 0 &&
+		    nvlist_lookup_uint64(config, ZPOOL_CONFIG_TRIM_STOP_TIME,
+		    &trim_stop_time) == 0) {
+			/*
+			 * For whatever reason, root vdev_stats_t don't
+			 * include log devices.
+			 */
+			print_trim_status(trim_prog, vs->vs_space +
+			    zpool_slog_space(nvroot), trim_rate,
+			    trim_start_time, trim_stop_time);
+		}
 
 		(void) printf(gettext("config:\n\n"));
 		(void) printf(gettext("\t%-*s  %-8s %5s %5s %5s"),
