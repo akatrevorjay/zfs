@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc3-1ubuntu1~11.gbp9c58a1) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4-1ubuntu1~12.gbp96f531) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @9c58a12d45b8e8728140185c497308e0421e6cb1 **
+  ** SNAPSHOT build @96f531bdc75ebe58c6abaa83f8f9be216e2b516c **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -856,7 +856,157 @@ zfs-linux (0.7.0-rc3-1ubuntu1~11.gbp9c58a1) UNRELEASED; urgency=medium
 
   [ Trevor Joynson (Debian) ]
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sun, 30 Apr 2017 05:57:11 -0700
+  [ Brian Behlendorf ]
+  * Limit zfs_dirty_data_max_max to 4G
+
+  [ Yuri Pankov ]
+  * OpenZFS 7786 - zfs`vdev_online() needs better notification about state changes
+
+  [ Brian Behlendorf ]
+  * Linux 4.12 compat: super_setup_bdi_name()
+
+  [ jxiong ]
+  * Guarantee PAGESIZE alignment for large zio buffers
+  * minor improvement to abd_free_pages()
+
+  [ Debabrata Banerjee ]
+  * Don't report ghost buffers as evictable mem
+  * Make arc_need_free updates atomic
+  * Stop double reclaiming or not reclaiming at all
+  * Do not stop kernel shrinker on lock contention
+  * Only wakeup waiters if we've actually done work
+  * Don't run the reaper if we didn't shrink the cache
+  * Correct signed operation
+  * Allow scaling of arc in proportion to pagecache
+
+  [ LOLi ]
+  * Add zfs_nicebytes() to print human-readable sizes
+
+  [ Olaf Faaland ]
+  * Write label 2,3 uberblocks when vdev expands
+
+  [ LOLi ]
+  * More ashift improvements
+
+  [ Brian Behlendorf ]
+  * Enable all zfs_destroy test cases
+  * Update rsend_014_pos and send-c_volume test cases
+
+  [ RageLtMan ]
+  * Disable write merging on ZVOLs
+
+  [ Richard Yao ]
+  * Enable Linux read-ahead for a single page on ZVOLs
+
+  [ Brian Behlendorf ]
+  * Default to zvol_request_async=0
+
+  [ Gvozden Neskovic ]
+  * Add missing *_destroy/*_fini calls
+
+  [ Brian Behlendorf ]
+  * Fix unused variable warning
+  * Tag 0.7.0-rc4
+
+  [ Chunwei Chen ]
+  * Linux 4.12 compat: PF_FSTRANS was removed
+
+  [ Giuseppe Di Natale ]
+  * Fix coverity defects: CID 161638
+
+  [ LOLi ]
+  * Fix zfs .deb package warning in prerm script
+  * Fix NULL pointer dereference in 'zfs create'
+
+  [ Christian Schwarz ]
+  * Make createtxg and guid properties public
+
+  [ LOLi ]
+  * Add property overriding (-o|-x) to 'zfs receive'
+
+  [ Brian Behlendorf ]
+  * Linux 4.12 compat: CURRENT_TIME removed
+
+  [ Tom Caputi ]
+  * Add missing arc_free_cksum() to arc_release()
+
+  [ Matthew Ahrens ]
+  * OpenZFS 8166 - zpool scrub thinks it repaired offline device
+  * OpenZFS 8063 - verify that we do not attempt to access inactive txg
+
+  [ Brian Behlendorf ]
+  * Enable additional test cases
+
+  [ Isaac Huang ]
+  * Skip spurious resilver IO on raidz vdev
+
+  [ Tim Chase ]
+  * Refresh dkio.h and add dkioc_free_util.h
+
+  [ Saso Kiselkov ]
+  * 6363 Add UNMAP/TRIM functionality to ZFS
+
+  [ Tim Chase ]
+  * Want manual trim feature to skip never-allocated space
+
+  [ Saso Kiselkov ]
+  * Trimming an offlined vdev asserts in zio_create.
+
+  [ Tim Chase ]
+  * Want extended zpool iostat trim support
+
+  [ Saso Kiselkov ]
+  * Matt Ahrens' review comments, round 2. Brian Behlendorf's review comments.
+
+  [ Brian Behlendorf ]
+  * Async TRIM, Extended Stats
+  * Review feedback
+  * Fix abd_alloc_sametype() panic
+
+  [ Boris Protopopov ]
+  * Revert commit 1ee159f4
+  * Introduce zv_state_lock
+
+  [ Justin Lecher ]
+  * Compatibilty with glibc-2.23
+
+  [ Trevor Joynson (trevorj) ]
+  * Import 0.6.5.7-0ubuntu3
+  * gbp changes
+  * Bump ver
+  * -j9 baby
+  * Up
+  * Yup
+  * Add new module
+  * Up
+  * Up
+  * Bump
+  * Grr
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * yay
+  * yay
+  * yay
+  * Update ppa script
+  * Update gbp conf with br changes
+  * Update gbp conf with br changes
+  * Bump
+  * No pristine
+  * Bump
+  * Lol whoops
+  * Fix name
+  * Fix name
+  * rebase
+  * Bump
+  * Bump
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Wed, 17 May 2017 16:41:38 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
