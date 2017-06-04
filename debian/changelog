@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc4-1ubuntu1~13.gbpbb6afc) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4-1ubuntu1~14.gbpf3c0db) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @bb6afc5e1cb27655793afc7496b5cf33b85566da **
+  ** SNAPSHOT build @f3c0dbd421c94055a724b4e0dca79fdce377a961 **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -1011,7 +1011,157 @@ zfs-linux (0.7.0-rc4-1ubuntu1~13.gbpbb6afc) UNRELEASED; urgency=medium
 
   [ Trevor Joynson (Debian) ]
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Wed, 17 May 2017 16:42:31 -0700
+  [ Brian Behlendorf ]
+  * Fix large dnode send stream flag conflict
+
+  [ Tom Caputi ]
+  * Fixed small memory leak in ereport handling
+
+  [ Tony Hutter ]
+  * Force fault a vdev with 'zpool offline -f'
+
+  [ Alek P ]
+  * Implemented zpool sync command
+
+  [ Feng Sun ]
+  * Fix LZ4_uncompress_unknownOutputSize caused panic
+
+  [ Brian Behlendorf ]
+  * Enable remaining tests
+  * Enable xattr tests
+  * Add zpool events tests
+  * Retire zconfig.sh
+
+  [ LOLi ]
+  * Linux 4.12 compat: fix super_setup_bdi_name() call
+
+  [ Chunwei Chen ]
+  * Improve gitignore
+  * config: allow --with-linux without --with-linux-obj
+
+  [ Yuri Pankov ]
+  * OpenZFS 8072 - zfs-tests: several test cases incorrectly spell TESTPOOL
+
+  [ LOLi ]
+  * Fix "snapdev" property inheritance behaviour
+
+  [ Alan Somers ]
+  * OpenZFS 8070 - Add some ZFS comments
+
+  [ Yuri Pankov ]
+  * OpenZFS 8071 - zfs-tests: 7290 missed some cases
+  * OpenZFS 8076 - zfs-tests suite fails rootpool_002_neg
+  * OpenZFS 8077 - zfs-tests suite fails zpool_get_002_pos
+
+  [ Brian Behlendorf ]
+  * Revert "Fix "snapdev" property inheritance behaviour"
+
+  [ Alek P ]
+  * Don't dirty bpobj if it has no entries
+
+  [ Boris Protopopov ]
+  * Fix ida leak in zvol_create_minor_impl
+
+  [ kpande ]
+  * Explain reason for Signed-off-by in CONTRIBUTING
+
+  [ LOLi ]
+  * Fix memory leak in zvol_set_volsize()
+
+  [ Giuseppe Di Natale ]
+  * Retire filebench testing
+
+  [ Chunwei Chen ]
+  * Fix import finding spare/l2cache when path changes
+  * Fix import wrong spare/l2 device when path change
+
+  [ Tim Chase ]
+  * Refresh dkio.h and add dkioc_free_util.h
+
+  [ Saso Kiselkov ]
+  * 6363 Add UNMAP/TRIM functionality to ZFS
+  * Trimming an offlined vdev asserts in zio_create.
+
+  [ Tim Chase ]
+  * Want extended zpool iostat trim support
+
+  [ Saso Kiselkov ]
+  * Matt Ahrens' review comments, round 2. Brian Behlendorf's review comments.
+
+  [ Brian Behlendorf ]
+  * Async TRIM, Extended Stats
+  * Review feedback
+  * Fix abd_alloc_sametype() panic
+
+  [ Saso Kiselkov ]
+  * Matt Ahrens' review comments.
+  * Matt Ahrens' review comments, round 3.
+
+  [ Brian Behlendorf ]
+  * Tim Chase's review comments, round 2.
+
+  [ Saso Kiselkov ]
+  * Matt Ahren's review comments round 4:
+  * Deadlockiness associated with doing postponing trimming on a metaslab wanting to condense.
+  * Matt Ahrens' review comments, round 5.
+  * Deadlockiness in autotrim due to recent changes.
+
+  [ Tim Chase ]
+  * Want manual trim feature to skip never-allocated space
+
+  [ Brian Behlendorf ]
+  * Update and add additional TRIM test cases
+  * Review feedback
+
+  [ Isaac Huang ]
+  * Remove vdev_raidz_map_alloc()
+
+  [ Brian Behlendorf ]
+  * Review feedback 2
+
+  [ LOLi ]
+  * Fix "snapdev" property issues
+
+  [ Trevor Joynson (trevorj) ]
+  * Import 0.6.5.7-0ubuntu3
+  * gbp changes
+  * Bump ver
+  * -j9 baby
+  * Up
+  * Yup
+  * Add new module
+  * Up
+  * Up
+  * Bump
+  * Grr
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * Yay
+  * yay
+  * yay
+  * yay
+  * Update ppa script
+  * Update gbp conf with br changes
+  * Update gbp conf with br changes
+  * Bump
+  * No pristine
+  * Bump
+  * Lol whoops
+  * Fix name
+  * Fix name
+  * rebase
+  * Bump
+  * Bump
+  * Bump
+  * Bump
+  * ntrim
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 21:56:44 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
