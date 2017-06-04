@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc4-1ubuntu1~14.gbpf3c0db) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4-1ubuntu1~15.gbpde488f) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @f3c0dbd421c94055a724b4e0dca79fdce377a961 **
+  ** SNAPSHOT build @de488f17deaf6700cd556de79f8fa2bf976f38b0 **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -1161,7 +1161,13 @@ zfs-linux (0.7.0-rc4-1ubuntu1~14.gbpf3c0db) UNRELEASED; urgency=medium
 
   [ Trevor Joynson (Debian) ]
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 21:56:44 -0700
+  [ Trevor Joynson (trevorj) ]
+  * Bump
+  * 9
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 22:24:27 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
