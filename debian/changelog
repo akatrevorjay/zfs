@@ -1,4 +1,4 @@
-zfs-linux (0.7.0-rc4git0-0ubuntu1~16.gbp4cdb9e) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4git0-0ubuntu1~16.gbp4cdb9e~xenial0) xenial; urgency=medium
 
   ** SNAPSHOT build @4cdb9ea648d276403097b255c3fdd165ae5d1403 **
 
@@ -1174,8 +1174,10 @@ zfs-linux (0.7.0-rc4git0-0ubuntu1~16.gbp4cdb9e) UNRELEASED; urgency=medium
   * Revert "9"
 
   [ Trevor Joynson (Debian) ]
+  * Rebuild for xenial
+  * Changed build-dependencies to packages available in xenial
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 23:39:35 -0700
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 23:40:20 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
