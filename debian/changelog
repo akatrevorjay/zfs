@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc4git0-0ubuntu1~16.gbp4cdb9e) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4git0-0ubuntu1~17.gbp898f7b) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @4cdb9ea648d276403097b255c3fdd165ae5d1403 **
+  ** SNAPSHOT build @898f7b52753f0981bd90d023a71c4eaf7bbf41dc **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -1175,7 +1175,13 @@ zfs-linux (0.7.0-rc4git0-0ubuntu1~16.gbp4cdb9e) UNRELEASED; urgency=medium
 
   [ Trevor Joynson (Debian) ]
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 23:39:35 -0700
+  [ Trevor Joynson (trevorj) ]
+  * Bump
+  * Account for zconfig.sh being removed
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 23:45:05 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
