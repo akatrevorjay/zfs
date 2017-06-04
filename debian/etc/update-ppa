@@ -92,12 +92,13 @@ base_version=$(dpkg-parsechangelog -S Version)
 #git tag -f "$debian_prefix/v${base_version}"
 
 if [[ ${#dists[@]} -eq 0 ]]; then
-    dists=(zesty yakkety xenial precise trusty)
+    dists=(zesty yakkety xenial trusty)
 fi
 
 
 do_dist() {
-    local dist="$1"
+    local dist="$1"; shift
+    local dput_args=("$@")
     local branch="$debian_prefix/$dist"
 
     local pre_version="${base_version}~${dist}"
@@ -143,18 +144,19 @@ do_dist() {
     gbp buildpackage \
       --git-debian-branch="$branch" \
       --git-submodules \
-      --git-builder='debuild --preserve-envvar=CCACHE_DIR --prepend-path=/usr/lib/ccache -i -I' \
-      -S -sa
+      -S \
+      && :
+      #-sa
+      #--git-builder='debuild --preserve-envvar=CCACHE_DIR --prepend-path=/usr/lib/ccache -i -I' \
 
-    dput "$PPA" "../build-area/${pkg}_${version}_source.changes" || return 1
+    dput $dput_args "$PPA" "../build-area/${pkg}_${version}_source.changes" || return 1
 
     echo "-- Tagging"
     git tag -f "${tag_version}"
 }
 
-
 for dist in "${dists[@]}"; do
-    do_dist "$dist"
+    do_dist "$dist" "$@"
 done
 
 echo "DONE"
