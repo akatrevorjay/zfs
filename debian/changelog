@@ -1,4 +1,4 @@
-zfs-linux (0.7.0-rc4git0-0ubuntu1~15.gbpde488f) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4git0-0ubuntu1~15.gbpde488f~zesty0) zesty; urgency=medium
 
   ** SNAPSHOT build @de488f17deaf6700cd556de79f8fa2bf976f38b0 **
 
@@ -1166,8 +1166,10 @@ zfs-linux (0.7.0-rc4git0-0ubuntu1~15.gbpde488f) UNRELEASED; urgency=medium
   * 9
 
   [ Trevor Joynson (Debian) ]
+  * Rebuild for zesty
+  * Changed build-dependencies to packages available in zesty
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 22:24:27 -0700
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Sat, 03 Jun 2017 23:19:48 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
