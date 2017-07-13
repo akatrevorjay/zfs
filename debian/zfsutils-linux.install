@@ -1,7 +1,7 @@
 ../tree/zfsutils-linux/* /
 contrib/bash_completion.d/zfs   /usr/share/bash-completion/completions/
-etc/zfs/zfs-functions.sh
-etc/zfs/zpool.d
+etc/zfs/zfs-functions*
+etc/zfs/zpool.d/*
 etc/zfs/*.example
 usr/lib/*/zfs/zpool.d
 bin
