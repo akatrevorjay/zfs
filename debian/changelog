@@ -1,4 +1,4 @@
-zfs-linux (0.7.0-rc4git1-0ubuntu1~23.gbp12ab31) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4git1-0ubuntu1~23.gbp12ab31~artful0) artful; urgency=medium
 
   ** SNAPSHOT build @12ab31cc0da8b3a9838b80b8ece70bf882c8571e **
 
@@ -1215,8 +1215,10 @@ zfs-linux (0.7.0-rc4git1-0ubuntu1~23.gbp12ab31) UNRELEASED; urgency=medium
   * conf file zed.d
 
   [ Trevor Joynson (Debian) ]
+  * Rebuild for artful
+  * Changed build-dependencies to packages available in artful
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Thu, 13 Jul 2017 15:59:19 -0700
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Thu, 13 Jul 2017 15:59:25 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
