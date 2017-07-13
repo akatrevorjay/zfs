@@ -23,6 +23,12 @@ then
 			ln -s "$scriptlet" "$enabled_dir/"
 		fi
         done
+else
+	for fn in "zed.rc"; do
+		if [[ ! -e "$enabled_dir/$fn" ]]; then
+			ln -s "$installed_dir/$fn" "$enabled_dir/"
+		fi
+	done
 fi
 
 #DEBHELPER#
