@@ -1,15 +1,11 @@
 ../tree/zfsutils-linux/* /
 contrib/bash_completion.d/zfs   /usr/share/bash-completion/completions/
+etc/zfs/zfs-functions.sh
+etc/zfs/zpool.d
+etc/zfs/*.example
+usr/lib/*/zfs/zpool.d
+bin
 sbin
 lib/udev
 debian/zfs.target /lib/systemd/system
-usr/share/man/man1
-usr/share/man/man5
-usr/share/man/man8/fsck.zfs.8
-usr/share/man/man8/mount.zfs.8
-usr/share/man/man8/vdev_id.8
-usr/share/man/man8/zdb.8
-usr/share/man/man8/zfs.8
-usr/share/man/man8/zinject.8
-usr/share/man/man8/zpool.8
-usr/share/man/man8/zstreamdump.8
+usr/share/man
