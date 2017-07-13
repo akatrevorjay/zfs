@@ -1,6 +1,6 @@
-zfs-linux (0.7.0-rc4git1-0ubuntu1~22.gbpdaa1b2) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4git1-0ubuntu1~23.gbp12ab31) UNRELEASED; urgency=medium
 
-  ** SNAPSHOT build @daa1b2f0b2d565d43549a95003de9180f1e75f3d **
+  ** SNAPSHOT build @12ab31cc0da8b3a9838b80b8ece70bf882c8571e **
 
   [ Trevor Joynson (trevorj) ]
   * Add new module
@@ -1210,7 +1210,13 @@ zfs-linux (0.7.0-rc4git1-0ubuntu1~22.gbpdaa1b2) UNRELEASED; urgency=medium
 
   [ Trevor Joynson (Debian) ]
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Thu, 13 Jul 2017 15:50:41 -0700
+  [ Trevor Joynson (trevorj) ]
+  * Bump
+  * conf file zed.d
+
+  [ Trevor Joynson (Debian) ]
+
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Thu, 13 Jul 2017 15:59:19 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
