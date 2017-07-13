@@ -1,4 +1,4 @@
-zfs-linux (0.7.0-rc4git1-0ubuntu1~20.gbp15251e) UNRELEASED; urgency=medium
+zfs-linux (0.7.0-rc4git1-0ubuntu1~20.gbp15251e~yakkety0) yakkety; urgency=medium
 
   ** SNAPSHOT build @15251eb25a1a4e5e449eb6540bdfc537a2ca7a46 **
 
@@ -1198,8 +1198,10 @@ zfs-linux (0.7.0-rc4git1-0ubuntu1~20.gbp15251e) UNRELEASED; urgency=medium
   * Bump
 
   [ Trevor Joynson (Debian) ]
+  * Rebuild for yakkety
+  * Changed build-dependencies to packages available in yakkety
 
- -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Thu, 13 Jul 2017 14:06:11 -0700
+ -- Trevor Joynson (Debian) <debian@trevor.joynson.io>  Thu, 13 Jul 2017 14:06:47 -0700
 
 zfs-linux (0.6.99-0ubuntu1) yakkety; urgency=medium
 
