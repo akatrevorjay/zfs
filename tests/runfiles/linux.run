@@ -444,6 +444,10 @@ tags = ['functional', 'compression']
 tests = ['ctime_001_pos' ]
 tags = ['functional', 'ctime']
 
+[tests/functional/dbufs]
+tests = ['dbufstats_001_pos', 'dbufstats_002_pos']
+tags = ['functional', 'dbufs']
+
 [tests/functional/delegate]
 tests = ['zfs_allow_001_pos', 'zfs_allow_002_pos',
     'zfs_allow_004_pos', 'zfs_allow_005_pos', 'zfs_allow_006_pos',
