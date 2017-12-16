@@ -47,6 +47,8 @@
 #include <sys/dkioc_free_util.h>
 #include <sys/metaslab_impl.h>
 #include <sys/dsl_crypt.h>
+#include <sys/dkioc_free_util.h>
+#include <sys/metaslab_impl.h>
 
 /*
  * ==========================================================================
@@ -3649,6 +3651,9 @@ zio_vdev_io_start(zio_t *zio)
 		}
 		zio->io_delay = gethrtime();
 	}
+
+	if (ZIO_IS_TRIM(zio) && zio_trim_should_bypass(zio))
+		return (ZIO_PIPELINE_CONTINUE);
 
 	vd->vdev_ops->vdev_op_io_start(zio);
 	return (ZIO_PIPELINE_STOP);
