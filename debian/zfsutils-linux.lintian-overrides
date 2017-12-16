@@ -1,7 +1,0 @@
-zfsutils-linux: init.d-script-not-marked-as-conffile etc/init.d/zfs-import-scan
-zfsutils-linux: init.d-script-not-included-in-package etc/init.d/zfs-import-scan
-zfsutils-linux: init.d-script-not-marked-as-conffile etc/init.d/zfs-mount
-zfsutils-linux: init.d-script-not-included-in-package etc/init.d/zfs-mount
-zfsutils-linux: init.d-script-not-marked-as-conffile etc/init.d/zfs-import-cache
-zfsutils-linux: init.d-script-not-included-in-package etc/init.d/zfs-import-cache
-zfsutils-linux: systemd-no-service-for-init-script zfs-share

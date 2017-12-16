@@ -1,3 +1,0 @@
-Tests: kernel-smoke-test
-Restrictions: needs-root
-Depends: @
