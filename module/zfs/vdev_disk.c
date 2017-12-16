@@ -569,10 +569,11 @@ retry:
 	dr = vdev_disk_dio_alloc(bio_count);
 	if (dr == NULL)
 		return (SET_ERROR(ENOMEM));
-	dr->dr_zio = zio;
 
 	if (zio && !(zio->io_flags & (ZIO_FLAG_IO_RETRY | ZIO_FLAG_TRYHARD)))
 		bio_set_flags_failfast(bdev, &flags);
+
+	dr->dr_zio = zio;
 
 	/*
 	 * When the IO size exceeds the maximum bio size for the request
@@ -728,18 +729,8 @@ BIO_END_IO_PROTO(vdev_disk_io_discard_completion, bio, error)
 	dio_request_t *dr = bio->bi_private;
 	zio_t *zio = dr->dr_zio;
 
-<<<<<<< HEAD
-	if (dr->dr_error == 0) {
-#ifdef HAVE_1ARG_BIO_END_IO_T
-		dr->dr_error = -(bio->bi_error);
-#else
-		dr->dr_error = -(error);
-#endif
-	}
-=======
 	if (dr->dr_error == 0)
 		dr->dr_error = BIO_END_IO_ERROR(bio);
->>>>>>> akatrevorjay/patch-kingdom
 
 	/*
 	 * Only the latency is updated at completion.  The ops and request
@@ -816,11 +807,7 @@ vdev_disk_io_discard(struct block_device *bdev, zio_t *zio)
 				request_sectors = end_sector - sector;
 			}
 
-<<<<<<< HEAD
-			bio->bi_bdev = bdev;
-=======
 			bio_set_dev(bio, bdev);
->>>>>>> akatrevorjay/patch-kingdom
 			bio->bi_end_io = vdev_disk_io_discard_completion;
 			bio->bi_private = dr;
 			bio_set_discard(bio);
