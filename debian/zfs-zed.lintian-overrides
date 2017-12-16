@@ -1,0 +1,2 @@
+zfs-zed: init.d-script-not-marked-as-conffile etc/init.d/zed
+zfs-zed: init.d-script-not-included-in-package etc/init.d/zed

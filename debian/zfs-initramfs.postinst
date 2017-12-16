@@ -1,0 +1,12 @@
+#!/bin/sh
+
+set -e
+
+if [ "$1" = "configure" ]; then
+    if which udevadm > /dev/null 2>&1; then
+        udevadm control --reload-rules || true
+        udevadm trigger --subsystem-match=block --action=change || true
+    fi
+fi
+
+#DEBHELPER#
