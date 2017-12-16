@@ -25,6 +25,7 @@
 
 /*
  * Copyright (c) 2011, 2016 by Delphix. All rights reserved.
+ * Copyright 2016 Nexenta Systems, Inc. All rights reserved.
  */
 
 #ifndef _SYS_METASLAB_IMPL_H
@@ -320,6 +321,11 @@ struct metaslab {
 	range_tree_t	*ms_alloctree[TXG_SIZE];
 	range_tree_t	*ms_tree;
 
+	range_tree_t	*ms_cur_ts;		/* currently prepared trims */
+	range_tree_t	*ms_prev_ts;		/* previous (aging) trims */
+	kcondvar_t	ms_trim_cv;
+	range_tree_t	*ms_trimming_ts;	/* in flight trims */
+
 	/*
 	 * The following range trees are accessed only from syncing context.
 	 * ms_free*tree only have entries while syncing, and are empty
@@ -330,6 +336,7 @@ struct metaslab {
 	range_tree_t	*ms_defertree[TXG_DEFER_SIZE];
 
 	boolean_t	ms_condensing;	/* condensing? */
+	kcondvar_t	ms_condensing_cv;
 	boolean_t	ms_condense_wanted;
 
 	/*

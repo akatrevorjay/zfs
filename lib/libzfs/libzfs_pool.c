@@ -533,8 +533,15 @@ zpool_valid_proplist(libzfs_handle_t *hdl, const char *poolname,
 			break;
 
 		case ZPOOL_PROP_ASHIFT:
-			if (intval != 0 &&
-			    (intval < ASHIFT_MIN || intval > ASHIFT_MAX)) {
+			if (!flags.create) {
+				zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
+				    "property '%s' can only be set at "
+				    "creation time"), propname);
+				(void) zfs_error(hdl, EZFS_BADPROP, errbuf);
+				goto error;
+			}
+
+			if (intval != 0 && (intval < ASHIFT_MIN || intval > ASHIFT_MAX)) {
 				zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
 				    "invalid '%s=%d' property: only values "
 				    "between %" PRId32 " and %" PRId32 " "
@@ -2038,6 +2045,30 @@ zpool_scan(zpool_handle_t *zhp, pool_scan_func_t func, pool_scrub_cmd_t cmd)
 	} else {
 		return (zpool_standard_error(hdl, err, msg));
 	}
+}
+
+/*
+ * Trim the pool.
+ */
+int
+zpool_trim(zpool_handle_t *zhp, boolean_t start, uint64_t rate,
+    boolean_t fulltrim)
+{
+	zfs_cmd_t zc = {"\0"};
+	char msg[1024];
+	libzfs_handle_t *hdl = zhp->zpool_hdl;
+	trim_cmd_info_t tci = { .tci_start = start, .tci_rate = rate,
+	    .tci_fulltrim = fulltrim };
+
+	(void) strlcpy(zc.zc_name, zhp->zpool_name, sizeof (zc.zc_name));
+	zc.zc_cookie = (uintptr_t)&tci;
+
+	if (zfs_ioctl(hdl, ZFS_IOC_POOL_TRIM, &zc) == 0)
+		return (0);
+
+	(void) snprintf(msg, sizeof (msg),
+	    dgettext(TEXT_DOMAIN, "cannot trim %s"), zc.zc_name);
+	return (zpool_standard_error(hdl, errno, msg));
 }
 
 /*
