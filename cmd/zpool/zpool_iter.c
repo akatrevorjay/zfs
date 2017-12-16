@@ -33,6 +33,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <thread_pool.h>
 
 #include <libzfs.h>
 #include <sys/zfs_context.h>
@@ -521,28 +522,69 @@ out:
 			free(env[i]);
 }
 
+/*
+ * Generate the search path for zpool iostat/status -c scripts.
+ * The string returned must be freed.
+ */
+char *
+zpool_get_cmd_search_path(void)
+{
+	const char *env;
+	char *sp = NULL;
+
+	env = getenv("ZPOOL_SCRIPTS_PATH");
+	if (env != NULL)
+		return (strdup(env));
+
+	env = getenv("HOME");
+	if (env != NULL) {
+		if (asprintf(&sp, "%s/.zpool.d:%s",
+		    env, ZPOOL_SCRIPTS_DIR) != -1) {
+			return (sp);
+		}
+	}
+
+	if (asprintf(&sp, "%s", ZPOOL_SCRIPTS_DIR) != -1)
+		return (sp);
+
+	return (NULL);
+}
+
 /* Thread function run for each vdev */
 static void
 vdev_run_cmd_thread(void *cb_cmd_data)
 {
 	vdev_cmd_data_t *data = cb_cmd_data;
-	const char *sep = ",";
-	char *cmd = NULL, *cmddup, *rest;
-	char fullpath[MAXPATHLEN];
+	char *cmd = NULL, *cmddup, *cmdrest;
 
 	cmddup = strdup(data->cmd);
 	if (cmddup == NULL)
 		return;
 
-	rest = cmddup;
-	while ((cmd = strtok_r(rest, sep, &rest))) {
-		if (snprintf(fullpath, sizeof (fullpath), "%s/%s",
-		    ZPOOL_SCRIPTS_DIR, cmd) == -1)
+	cmdrest = cmddup;
+	while ((cmd = strtok_r(cmdrest, ",", &cmdrest))) {
+		char *dir = NULL, *sp, *sprest;
+		char fullpath[MAXPATHLEN];
+
+		if (strchr(cmd, '/') != NULL)
 			continue;
 
-		/* Does the script exist in our zpool scripts dir? */
-		if (access(fullpath, X_OK) == 0)
-			vdev_run_cmd(data, fullpath);
+		sp = zpool_get_cmd_search_path();
+		if (sp == NULL)
+			continue;
+
+		sprest = sp;
+		while ((dir = strtok_r(sprest, ":", &sprest))) {
+			if (snprintf(fullpath, sizeof (fullpath),
+			    "%s/%s", dir, cmd) == -1)
+				continue;
+
+			if (access(fullpath, X_OK) == 0) {
+				vdev_run_cmd(data, fullpath);
+				break;
+			}
+		}
+		free(sp);
 	}
 	free(cmddup);
 }
@@ -627,34 +669,21 @@ all_pools_for_each_vdev_gather_cb(zpool_handle_t *zhp, void *cb_vcdl)
 static void
 all_pools_for_each_vdev_run_vcdl(vdev_cmd_data_list_t *vcdl)
 {
-	taskq_t *t;
-	int i;
-	/* 5 * boot_ncpus selfishly chosen since it works best on LLNL's HW */
-	int max_threads = 5 * boot_ncpus;
+	tpool_t *t;
 
-	/*
-	 * Under Linux we use a taskq to parallelize running a command
-	 * on each vdev.  It is therefore necessary to initialize this
-	 * functionality for the duration of the threads.
-	 */
-	thread_init();
-
-	t = taskq_create("z_pool_cmd", max_threads, defclsyspri, max_threads,
-	    INT_MAX, 0);
+	t = tpool_create(1, 5 * sysconf(_SC_NPROCESSORS_ONLN), 0, NULL);
 	if (t == NULL)
 		return;
 
 	/* Spawn off the command for each vdev */
-	for (i = 0; i < vcdl->count; i++) {
-		(void) taskq_dispatch(t, vdev_run_cmd_thread,
-		    (void *) &vcdl->data[i], TQ_SLEEP);
+	for (int i = 0; i < vcdl->count; i++) {
+		(void) tpool_dispatch(t, vdev_run_cmd_thread,
+		    (void *) &vcdl->data[i]);
 	}
 
 	/* Wait for threads to finish */
-	taskq_wait(t);
-	taskq_destroy(t);
-	thread_fini();
-
+	tpool_wait(t);
+	tpool_destroy(t);
 }
 
 /*

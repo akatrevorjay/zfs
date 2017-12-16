@@ -24,6 +24,7 @@
  * Copyright (c) 2013, Joyent, Inc. All rights reserved.
  * Copyright (c) 2011, 2014 by Delphix. All rights reserved.
  * Copyright 2016 Igor Kozhukhov <ikozhukhov@gmail.com>
+ * Copyright (c) 2017 Datto Inc.
  * Copyright 2017 Nexenta Systems, Inc. All rights reserved.
  */
 
@@ -247,6 +248,9 @@ libzfs_error_description(libzfs_handle_t *hdl)
 	case EZFS_POSTSPLIT_ONLINE:
 		return (dgettext(TEXT_DOMAIN, "disk was split from this pool "
 		    "into a new one"));
+	case EZFS_SCRUB_PAUSED:
+		return (dgettext(TEXT_DOMAIN, "scrub is paused; "
+		    "use 'zpool scrub' to resume"));
 	case EZFS_SCRUBBING:
 		return (dgettext(TEXT_DOMAIN, "currently scrubbing; "
 		    "use 'zpool scrub -s' to cancel current scrub"));
@@ -258,6 +262,11 @@ libzfs_error_description(libzfs_handle_t *hdl)
 		return (dgettext(TEXT_DOMAIN, "invalid diff data"));
 	case EZFS_POOLREADONLY:
 		return (dgettext(TEXT_DOMAIN, "pool is read-only"));
+	case EZFS_ACTIVE_POOL:
+		return (dgettext(TEXT_DOMAIN, "pool is imported on a "
+		    "different host"));
+	case EZFS_CRYPTOFAILED:
+		return (dgettext(TEXT_DOMAIN, "encryption failure"));
 	case EZFS_UNKNOWN:
 		return (dgettext(TEXT_DOMAIN, "unknown error"));
 	default:
@@ -420,6 +429,9 @@ zfs_standard_error_fmt(libzfs_handle_t *hdl, int error, const char *fmt, ...)
 		    "pool I/O is currently suspended"));
 		zfs_verror(hdl, EZFS_POOLUNAVAIL, fmt, ap);
 		break;
+	case EREMOTEIO:
+		zfs_verror(hdl, EZFS_ACTIVE_POOL, fmt, ap);
+		break;
 	default:
 		zfs_error_aux(hdl, strerror(error));
 		zfs_verror(hdl, EZFS_UNKNOWN, fmt, ap);
@@ -507,6 +519,9 @@ zpool_standard_error_fmt(libzfs_handle_t *hdl, int error, const char *fmt, ...)
 		zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
 		    "block size out of range or does not match"));
 		zfs_verror(hdl, EZFS_BADPROP, fmt, ap);
+		break;
+	case EREMOTEIO:
+		zfs_verror(hdl, EZFS_ACTIVE_POOL, fmt, ap);
 		break;
 
 	default:
@@ -624,8 +639,13 @@ zfs_nicenum_format(uint64_t num, char *buf, size_t buflen,
 	if (format == ZFS_NICENUM_RAW) {
 		snprintf(buf, buflen, "%llu", (u_longlong_t)num);
 		return;
+	} else if (format == ZFS_NICENUM_RAWTIME && num > 0) {
+		snprintf(buf, buflen, "%llu", (u_longlong_t)num);
+		return;
+	} else if (format == ZFS_NICENUM_RAWTIME && num == 0) {
+		snprintf(buf, buflen, "%s", "-");
+		return;
 	}
-
 
 	while (n >= k_unit[format] && index < units_len[format]) {
 		n /= k_unit[format];
@@ -634,7 +654,7 @@ zfs_nicenum_format(uint64_t num, char *buf, size_t buflen,
 
 	u = units[format][index];
 
-	/* Don't print 0ns times */
+	/* Don't print zero latencies since they're invalid */
 	if ((format == ZFS_NICENUM_TIME) && (num == 0)) {
 		(void) snprintf(buf, buflen, "-");
 	} else if ((index == 0) || ((num %
@@ -1051,7 +1071,6 @@ libzfs_fini(libzfs_handle_t *hdl)
 		(void) fclose(hdl->libzfs_sharetab);
 	zfs_uninit_libshare(hdl);
 	zpool_free_handles(hdl);
-	libzfs_fru_clear(hdl, B_TRUE);
 	namespace_clear(hdl);
 	libzfs_mnttab_fini(hdl);
 	libzfs_core_fini();

@@ -20,11 +20,10 @@
 # Copyright (C) 2016 Lawrence Livermore National Security, LLC.
 #
 
-basedir=$(dirname "$0")
-
+BASE_DIR=$(dirname "$0")
 SCRIPT_COMMON=common.sh
-if [ -f "${basedir}/${SCRIPT_COMMON}" ]; then
-	. "${basedir}/${SCRIPT_COMMON}"
+if [ -f "${BASE_DIR}/${SCRIPT_COMMON}" ]; then
+	. "${BASE_DIR}/${SCRIPT_COMMON}"
 else
 	echo "Missing helper script ${SCRIPT_COMMON}" && exit 1
 fi
@@ -37,7 +36,7 @@ DEFAULTCOREDIR=/var/tmp/zloop
 
 function usage
 {
-	echo -e "\n$0 [-t <timeout>] [-c <dump directory>]" \
+	echo -e "\n$0 [-t <timeout>] [ -s <vdev size> ] [-c <dump directory>]" \
 	    "[ -- [extra ztest parameters]]\n" \
 	    "\n" \
 	    "  This script runs ztest repeatedly with randomized arguments.\n" \
@@ -49,6 +48,7 @@ function usage
 	    "  Options:\n" \
 	    "    -t  Total time to loop for, in seconds. If not provided,\n" \
 	    "        zloop runs forever.\n" \
+	    "    -s  Size of vdev devices.\n" \
 	    "    -f  Specify working directory for ztest vdev files.\n" \
 	    "    -c  Specify a core dump directory to use.\n" \
 	    "    -h  Print this help message.\n" \
@@ -100,6 +100,7 @@ function store_core
 {
 	core="$(core_file)"
 	if [[ $ztrc -ne 0 ]] || [[ -f "$core" ]]; then
+		df -h "$workdir" >>ztest.out
 		coreid=$(date "+zloop-%y%m%d-%H%M%S")
 		foundcrashes=$((foundcrashes + 1))
 
@@ -146,16 +147,28 @@ function store_core
 	fi
 }
 
+rngdpid=""
+function on_exit
+{
+	if [ -n "$rngdpid" ]; then
+		kill -9 "$rngdpid"
+	fi
+}
+trap on_exit EXIT
+
 # parse arguments
 # expected format: zloop [-t timeout] [-c coredir] [-- extra ztest args]
 coredir=$DEFAULTCOREDIR
-workdir=$DEFAULTWORKDIR
+basedir=$DEFAULTWORKDIR
+rundir="zloop-run"
 timeout=0
-while getopts ":ht:c:f:" opt; do
+size="512m"
+while getopts ":ht:s:c:f:" opt; do
 	case $opt in
 		t ) [[ $OPTARG -gt 0 ]] && timeout=$OPTARG ;;
+		s ) [[ $OPTARG ]] && size=$OPTARG ;;
 		c ) [[ $OPTARG ]] && coredir=$OPTARG ;;
-		f ) [[ $OPTARG ]] && workdir=$(readlink -f "$OPTARG") ;;
+		f ) [[ $OPTARG ]] && basedir=$(readlink -f "$OPTARG") ;;
 		h ) usage
 		    exit 2
 		    ;;
@@ -190,6 +203,9 @@ or_die rm -f ztest.history
 or_die rm -f ztest.ddt
 or_die rm -f ztest.cores
 
+# start rngd in the background so we don't run out of entropy
+or_die read -r rngdpid < <(rngd -f -r /dev/urandom & echo $!)
+
 ztrc=0		# ztest return value
 foundcrashes=0	# number of crashes found so far
 starttime=$(date +%s)
@@ -198,6 +214,11 @@ curtime=$starttime
 # if no timeout was specified, loop forever.
 while [[ $timeout -eq 0 ]] || [[ $curtime -le $((starttime + timeout)) ]]; do
 	zopt="-VVVVV"
+
+	# start each run with an empty directory
+	workdir="$basedir/$rundir"
+	or_die rm -rf "$workdir"
+	or_die mkdir "$workdir"
 
 	# switch between common arrangements & fully randomized
 	if [[ $((RANDOM % 2)) -eq 0 ]]; then
@@ -214,7 +235,6 @@ while [[ $timeout -eq 0 ]] || [[ $curtime -le $((starttime + timeout)) ]]; do
 	align=$(((RANDOM % 2) * 3 + 9))
 	runtime=$((RANDOM % 100))
 	passtime=$((RANDOM % (runtime / 3 + 1) + 10))
-	size=128m
 
 	zopt="$zopt -m $mirrors"
 	zopt="$zopt -r $raidz"
@@ -234,7 +254,7 @@ while [[ $timeout -eq 0 ]] || [[ $curtime -le $((starttime + timeout)) ]]; do
 	$cmd >>ztest.out 2>&1
 	ztrc=$?
 	egrep '===|WARNING' ztest.out >>ztest.history
-	$ZDB -U "$workdir/zpool.cache" -DD ztest >>ztest.ddt
+	$ZDB -U "$workdir/zpool.cache" -DD ztest >>ztest.ddt 2>&1
 
 	store_core
 

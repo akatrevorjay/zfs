@@ -21,6 +21,7 @@ SUBDIRS = \
 	grow_pool \
 	grow_replicas \
 	history \
+	hkdf \
 	inheritance \
 	inuse \
 	large_files \
@@ -29,6 +30,7 @@ SUBDIRS = \
 	link_count \
 	migration \
 	mmap \
+	mmp \
 	mount \
 	mv_files \
 	nestedfs \

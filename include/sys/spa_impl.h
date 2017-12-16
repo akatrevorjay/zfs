@@ -25,6 +25,7 @@
  * Copyright (c) 2014 Spectra Logic Corporation, All rights reserved.
  * Copyright 2013 Saso Kiselkov. All rights reserved.
  * Copyright (c) 2016 Actifio, Inc. All rights reserved.
+ * Copyright (c) 2017 Datto Inc.
  */
 
 #ifndef _SYS_SPA_IMPL_H
@@ -41,6 +42,7 @@
 #include <sys/refcount.h>
 #include <sys/bplist.h>
 #include <sys/bpobj.h>
+#include <sys/dsl_crypt.h>
 #include <sys/zfeature.h>
 #include <zfeature_common.h>
 
@@ -185,9 +187,9 @@ struct spa {
 	uberblock_t	spa_ubsync;		/* last synced uberblock */
 	uberblock_t	spa_uberblock;		/* current uberblock */
 	boolean_t	spa_extreme_rewind;	/* rewind past deferred frees */
-	uint64_t	spa_last_io;		/* lbolt of last non-scan I/O */
 	kmutex_t	spa_scrub_lock;		/* resilver/scrub lock */
-	uint64_t	spa_scrub_inflight;	/* in-flight scrub I/Os */
+	uint64_t	spa_scrub_inflight;	/* in-flight scrub bytes */
+	uint64_t	spa_load_verify_ios;	/* in-flight verification IOs */
 	kcondvar_t	spa_scrub_io_cv;	/* scrub I/O completion */
 	uint8_t		spa_scrub_active;	/* active or suspended? */
 	uint8_t		spa_scrub_type;		/* type of scrub we're doing */
@@ -195,7 +197,10 @@ struct spa {
 	uint8_t		spa_scrub_started;	/* started since last boot */
 	uint8_t		spa_scrub_reopen;	/* scrub doing vdev_reopen */
 	uint64_t	spa_scan_pass_start;	/* start time per pass/reboot */
+	uint64_t	spa_scan_pass_scrub_pause; /* scrub pause time */
+	uint64_t	spa_scan_pass_scrub_spent_paused; /* total paused */
 	uint64_t	spa_scan_pass_exam;	/* examined bytes per pass */
+	uint64_t	spa_scan_pass_issued;	/* issued bytes per pass */
 	kmutex_t	spa_async_lock;		/* protect async state */
 	kthread_t	*spa_async_thread;	/* thread doing async task */
 	int		spa_async_suspended;	/* async tasks suspended */
@@ -297,8 +302,11 @@ struct spa {
 
 	uint64_t	spa_errata;		/* errata issues detected */
 	spa_stats_t	spa_stats;		/* assorted spa statistics */
+	spa_keystore_t	spa_keystore;		/* loaded crypto keys */
 	hrtime_t	spa_ccw_fail_time;	/* Conf cache write fail time */
 	taskq_t		*spa_zvol_taskq;	/* Taskq for minor management */
+	uint64_t	spa_multihost;		/* multihost aware (mmp) */
+	mmp_thread_t	spa_mmp;		/* multihost mmp thread */
 
 	/*
 	 * spa_refcount & spa_config_lock must be the last elements

@@ -188,6 +188,7 @@ static vdev_disk_db_entry_t vdev_disk_database[] = {
 	{"ATA     INTEL SSDSC2BB60", 4096},
 	{"ATA     INTEL SSDSC2BB80", 4096},
 	{"ATA     INTEL SSDSC2BW24", 4096},
+	{"ATA     INTEL SSDSC2BW48", 4096},
 	{"ATA     INTEL SSDSC2BP24", 4096},
 	{"ATA     INTEL SSDSC2BP48", 4096},
 	{"NA      SmrtStorSDLKAE9W", 4096},
@@ -800,8 +801,11 @@ get_replication(nvlist_t *nvroot, boolean_t fatal)
 		if (is_log)
 			continue;
 
-		verify(nvlist_lookup_string(nv, ZPOOL_CONFIG_TYPE,
-		    &type) == 0);
+		/* Ignore holes introduced by removing aux devices */
+		verify(nvlist_lookup_string(nv, ZPOOL_CONFIG_TYPE, &type) == 0);
+		if (strcmp(type, VDEV_TYPE_HOLE) == 0)
+			continue;
+
 		if (nvlist_lookup_nvlist_array(nv, ZPOOL_CONFIG_CHILDREN,
 		    &child, &children) != 0) {
 			/*
@@ -1053,6 +1057,7 @@ check_replication(nvlist_t *config, nvlist_t *newroot)
 	nvlist_t **child;
 	uint_t	children;
 	replication_level_t *current = NULL, *new;
+	replication_level_t *raidz, *mirror;
 	int ret;
 
 	/*
@@ -1100,7 +1105,21 @@ check_replication(nvlist_t *config, nvlist_t *newroot)
 	 */
 	ret = 0;
 	if (current != NULL) {
-		if (strcmp(current->zprl_type, new->zprl_type) != 0) {
+		if (is_raidz_mirror(current, new, &raidz, &mirror) ||
+		    is_raidz_mirror(new, current, &raidz, &mirror)) {
+			if (raidz->zprl_parity != mirror->zprl_children - 1) {
+				vdev_error(gettext(
+				    "mismatched replication level: pool and "
+				    "new vdev with different redundancy, %s "
+				    "and %s vdevs, %llu vs. %llu (%llu-way)\n"),
+				    raidz->zprl_type,
+				    mirror->zprl_type,
+				    raidz->zprl_parity,
+				    mirror->zprl_children - 1,
+				    mirror->zprl_children);
+				ret = -1;
+			}
+		} else if (strcmp(current->zprl_type, new->zprl_type) != 0) {
 			vdev_error(gettext(
 			    "mismatched replication level: pool uses %s "
 			    "and new vdev is %s\n"),
@@ -1212,7 +1231,8 @@ make_disks(zpool_handle_t *zhp, nvlist_t *nv)
 			if (is_mpath_whole_disk(path))
 				update_vdev_config_dev_strs(nv);
 
-			(void) zero_label(path);
+			if (!is_spare(NULL, path))
+				(void) zero_label(path);
 			return (0);
 		}
 

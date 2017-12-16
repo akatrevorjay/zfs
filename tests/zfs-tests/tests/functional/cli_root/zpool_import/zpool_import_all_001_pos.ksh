@@ -48,11 +48,11 @@ verify_runnable "global"
 
 set -A options "" "-R $ALTER_ROOT"
 
+typeset -A testpools
 typeset -i number=0
-typeset -i id=0
 typeset -i i=0
 typeset checksum1
-typeset unwantedpool
+typeset poolname
 
 function setup_single_disk #disk #pool #fs #mtpt
 {
@@ -62,9 +62,7 @@ function setup_single_disk #disk #pool #fs #mtpt
 	typeset mtpt=$4
 
 	setup_filesystem "$disk" "$pool" "$fs" "$mtpt"
-
 	log_must cp $MYTESTFILE $mtpt/$TESTFILE0
-
 	log_must zpool export $pool
 
 	[[ -d $mtpt ]] && \
@@ -73,7 +71,7 @@ function setup_single_disk #disk #pool #fs #mtpt
 
 function cleanup_all
 {
-	typeset -i id=0
+	typeset -i id=1
 
 	#
 	# Try import individually if 'import -a' failed.
@@ -87,27 +85,10 @@ function cleanup_all
 	done
 
 	while (( id < number )); do
-		if ! poolexists ${TESTPOOL}-$id ; then
-			(( id = id + 1 ))
-			continue
-		fi
-
-		if (( id == 0 )); then
-			log_must zpool export ${TESTPOOL}-$id
-
-			[[ -d /${TESTPOOL}-$id ]] && \
-				log_must rm -rf /${TESTPOOL}-$id
-
-			log_must zpool import -f ${TESTPOOL}-$id $TESTPOOL
-
-			[[ -e $TESTDIR/$TESTFILE0 ]] && \
-				log_must rm -rf $TESTDIR/$TESTFILE0
-		else
+		if poolexists ${TESTPOOL}-$id ; then
 			cleanup_filesystem "${TESTPOOL}-$id" $TESTFS
-
 			destroy_pool ${TESTPOOL}-$id
 		fi
-
 		(( id = id + 1 ))
         done
 
@@ -118,21 +99,12 @@ function cleanup_all
 function checksum_all #alter_root
 {
 	typeset alter_root=$1
-	typeset -i id=0
+	typeset -i id=1
 	typeset file
 	typeset checksum2
 
 	while (( id < number )); do
-		if (( id == $PRIMARY_SLICE )); then
-			(( id = id + 1 ))
-			continue
-		fi
-
-		if (( id == 0 )); then
-			file=${alter_root}/$TESTDIR/$TESTFILE0
-		else
-			file=${alter_root}/$TESTDIR.$id/$TESTFILE0
-		fi
+		file=${alter_root}/$TESTDIR.$id/$TESTFILE0
 		[[ ! -e $file ]] && \
 			log_fail "$file missing after import."
 
@@ -148,59 +120,34 @@ function checksum_all #alter_root
 
 
 log_assert "Verify that 'zpool import -a' succeeds as root."
-
 log_onexit cleanup_all
 
 checksum1=$(sum $MYTESTFILE | awk '{print $1}')
-
-log_must zpool export $TESTPOOL
-log_must zpool import $TESTPOOL ${TESTPOOL}-0
-log_must cp $MYTESTFILE $TESTDIR/$TESTFILE0
-log_must zpool export ${TESTPOOL}-0
-[[ -d /${TESTPOOL}-0 ]] && \
-	log_must rm -rf /${TESTPOOL}-0
-
-#
-# setup exported pools on normal devices
-#
 number=1
-while (( number <= $GROUP_NUM )); do
-	if (( number == $PRIMARY_SLICE)); then
-		(( number = number + 1 ))
-		continue
-	fi
-
-	setup_single_disk "${ZFS_DISK1}${SLICE_PREFIX}${number}" \
-		"${TESTPOOL}-$number" \
-		"$TESTFS" \
-		"$TESTDIR.$number"
-
-	(( number = number + 1 ))
-done
 
 #
 # setup exported pools on raw files
 #
 for disk in $DEVICE_FILES
 do
-
+	poolname="${TESTPOOL}-$number"
 	setup_single_disk "$disk" \
-		"${TESTPOOL}-$number" \
+		"$poolname" \
 		"$TESTFS" \
 		"$TESTDIR.$number"
-
+	testpools[$poolname]=$poolname
 	(( number = number + 1 ))
 done
 
 while (( i < ${#options[*]} )); do
 
-	log_must zpool import -d ${DEV_DSKDIR} -d $DEVICE_DIR ${options[i]} -a -f
+	log_must zpool import -d $DEVICE_DIR ${options[i]} -a -f
 
-	# destroy unintentional imported pools
-	typeset exclude=`eval echo \"'(${KEEP})'\"`
-	for unwantedpool in $(zpool list -H -o name \
-	     | egrep -v "$exclude" | grep -v $TESTPOOL); do
-		log_must zpool export $unwantedpool
+	# export unintentionally imported pools
+	for poolname in $(get_all_pools); do
+		if [[ -z ${testpools[$poolname]} ]]; then
+			log_must_busy zpool export $poolname
+		fi
 	done
 
 	if [[ -n ${options[i]} ]]; then
@@ -209,12 +156,10 @@ while (( i < ${#options[*]} )); do
 		checksum_all
 	fi
 
-	id=0
-	while (( id < number )); do
-		if poolexists ${TESTPOOL}-$id ; then
-			log_must zpool export ${TESTPOOL}-$id
+	for poolname in ${testpools[@]}; do
+		if poolexists $poolname ; then
+			log_must_busy zpool export $poolname
 		fi
-		(( id = id + 1 ))
 	done
 
 	(( i = i + 1 ))

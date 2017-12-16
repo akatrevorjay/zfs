@@ -392,7 +392,6 @@ dmu_tx_hold_free_impl(dmu_tx_hold_t *txh, uint64_t off, uint64_t len)
 		    SPA_BLKPTRSHIFT;
 		uint64_t start = off >> shift;
 		uint64_t end = (off + len) >> shift;
-		uint64_t i;
 
 		ASSERT(dn->dn_indblkshift != 0);
 
@@ -406,7 +405,7 @@ dmu_tx_hold_free_impl(dmu_tx_hold_t *txh, uint64_t off, uint64_t len)
 
 		zio_t *zio = zio_root(tx->tx_pool->dp_spa,
 		    NULL, NULL, ZIO_FLAG_CANFAIL);
-		for (i = start; i <= end; i++) {
+		for (uint64_t i = start; i <= end; i++) {
 			uint64_t ibyte = i << shift;
 			err = dnode_next_offset(dn, 0, &ibyte, 2, 1, 0);
 			i = ibyte >> shift;
@@ -888,7 +887,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, txg_how_t txg_how)
 	    dsl_pool_need_dirty_delay(tx->tx_pool)) {
 		tx->tx_wait_dirty = B_TRUE;
 		DMU_TX_STAT_BUMP(dmu_tx_dirty_delay);
-		return (ERESTART);
+		return (SET_ERROR(ERESTART));
 	}
 
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
@@ -1114,15 +1113,13 @@ dmu_tx_destroy(dmu_tx_t *tx)
 void
 dmu_tx_commit(dmu_tx_t *tx)
 {
-	dmu_tx_hold_t *txh;
-
 	ASSERT(tx->tx_txg != 0);
 
 	/*
 	 * Go through the transaction's hold list and remove holds on
 	 * associated dnodes, notifying waiters if no holds remain.
 	 */
-	for (txh = list_head(&tx->tx_holds); txh != NULL;
+	for (dmu_tx_hold_t *txh = list_head(&tx->tx_holds); txh != NULL;
 	    txh = list_next(&tx->tx_holds, txh)) {
 		dnode_t *dn = txh->txh_dnode;
 
@@ -1242,11 +1239,13 @@ dmu_tx_sa_registration_hold(sa_os_t *sa, dmu_tx_t *tx)
 void
 dmu_tx_hold_spill(dmu_tx_t *tx, uint64_t object)
 {
-	dmu_tx_hold_t *txh = dmu_tx_hold_object_impl(tx,
-	    tx->tx_objset, object, THT_SPILL, 0, 0);
+	dmu_tx_hold_t *txh;
 
-	(void) refcount_add_many(&txh->txh_space_towrite,
-	    SPA_OLD_MAXBLOCKSIZE, FTAG);
+	txh = dmu_tx_hold_object_impl(tx, tx->tx_objset, object,
+	    THT_SPILL, 0, 0);
+	if (txh != NULL)
+		(void) refcount_add_many(&txh->txh_space_towrite,
+		    SPA_OLD_MAXBLOCKSIZE, FTAG);
 }
 
 void
@@ -1367,6 +1366,7 @@ EXPORT_SYMBOL(dmu_tx_abort);
 EXPORT_SYMBOL(dmu_tx_assign);
 EXPORT_SYMBOL(dmu_tx_wait);
 EXPORT_SYMBOL(dmu_tx_commit);
+EXPORT_SYMBOL(dmu_tx_mark_netfree);
 EXPORT_SYMBOL(dmu_tx_get_txg);
 EXPORT_SYMBOL(dmu_tx_callback_register);
 EXPORT_SYMBOL(dmu_tx_do_callbacks);

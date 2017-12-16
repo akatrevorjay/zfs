@@ -171,7 +171,7 @@ int zfs_vdev_async_write_active_max_dirty_percent = 60;
  * we include spans of optional I/Os to aid aggregation at the disk even when
  * they aren't able to help us aggregate at this level.
  */
-int zfs_vdev_aggregation_limit = SPA_OLD_MAXBLOCKSIZE;
+int zfs_vdev_aggregation_limit = 1 << 20;
 int zfs_vdev_read_gap_limit = 32 << 10;
 int zfs_vdev_write_gap_limit = 4 << 10;
 
@@ -408,16 +408,15 @@ vdev_queue_init(vdev_t *vd)
 		    sizeof (zio_t), offsetof(struct zio, io_queue_node));
 	}
 
-	vq->vq_lastoffset = 0;
+	vq->vq_last_offset = 0;
 }
 
 void
 vdev_queue_fini(vdev_t *vd)
 {
 	vdev_queue_t *vq = &vd->vdev_queue;
-	zio_priority_t p;
 
-	for (p = 0; p < ZIO_PRIORITY_NUM_QUEUEABLE; p++)
+	for (zio_priority_t p = 0; p < ZIO_PRIORITY_NUM_QUEUEABLE; p++)
 		avl_destroy(vdev_queue_class_tree(vq, p));
 	avl_destroy(&vq->vq_active_tree);
 	avl_destroy(vdev_queue_type_tree(vq, ZIO_TYPE_READ));
@@ -542,13 +541,14 @@ vdev_queue_aggregate(vdev_queue_t *vq, zio_t *zio)
 	uint64_t maxgap = 0;
 	uint64_t size;
 	uint64_t limit;
+	int maxblocksize;
 	boolean_t stretch = B_FALSE;
 	avl_tree_t *t = vdev_queue_type_tree(vq, zio->io_type);
 	enum zio_flag flags = zio->io_flags & ZIO_FLAG_AGG_INHERIT;
 	abd_t *abd;
 
-	limit = MAX(MIN(zfs_vdev_aggregation_limit,
-	    spa_maxblocksize(vq->vq_vdev->vdev_spa)), 0);
+	maxblocksize = spa_maxblocksize(vq->vq_vdev->vdev_spa);
+	limit = MAX(MIN(zfs_vdev_aggregation_limit, maxblocksize), 0);
 
 	if (zio->io_flags & ZIO_FLAG_DONT_AGGREGATE || limit == 0)
 		return (NULL);
@@ -605,6 +605,7 @@ vdev_queue_aggregate(vdev_queue_t *vq, zio_t *zio)
 	    (dio->io_flags & ZIO_FLAG_AGG_INHERIT) == flags &&
 	    (IO_SPAN(first, dio) <= limit ||
 	    (dio->io_flags & ZIO_FLAG_OPTIONAL)) &&
+	    IO_SPAN(first, dio) <= maxblocksize &&
 	    IO_GAP(last, dio) <= maxgap) {
 		last = dio;
 		if (!(last->io_flags & ZIO_FLAG_OPTIONAL))
@@ -656,6 +657,7 @@ vdev_queue_aggregate(vdev_queue_t *vq, zio_t *zio)
 		return (NULL);
 
 	size = IO_SPAN(first, last);
+	ASSERT3U(size, <=, maxblocksize);
 
 	abd = abd_alloc_for_io(size, B_TRUE);
 	if (abd == NULL)
@@ -717,9 +719,8 @@ again:
 	 */
 	tree = vdev_queue_class_tree(vq, p);
 	vq->vq_io_search.io_timestamp = 0;
-	vq->vq_io_search.io_offset = vq->vq_last_offset + 1;
-	VERIFY3P(avl_find(tree, &vq->vq_io_search,
-	    &idx), ==, NULL);
+	vq->vq_io_search.io_offset = vq->vq_last_offset - 1;
+	VERIFY3P(avl_find(tree, &vq->vq_io_search, &idx), ==, NULL);
 	zio = avl_nearest(tree, idx, AVL_AFTER);
 	if (zio == NULL)
 		zio = avl_first(tree);
@@ -750,6 +751,8 @@ again:
 	if (zio->io_priority != ZIO_PRIORITY_AUTO_TRIM ||
 	    zio->io_priority != ZIO_PRIORITY_MAN_TRIM)
 		vq->vq_last_offset = zio->io_offset;
+	else
+		vq->vq_last_offset = zio->io_offset + zio->io_size;
 
 	return (zio);
 }
@@ -828,7 +831,7 @@ vdev_queue_io_done(zio_t *zio)
 }
 
 /*
- * As these three methods are only used for load calculations we're not
+ * As these two methods are only used for load calculations we're not
  * concerned if we get an incorrect value on 32bit platforms due to lack of
  * vq_lock mutex use here, instead we prefer to keep it lock free for
  * performance.
@@ -840,15 +843,9 @@ vdev_queue_length(vdev_t *vd)
 }
 
 uint64_t
-vdev_queue_lastoffset(vdev_t *vd)
+vdev_queue_last_offset(vdev_t *vd)
 {
-	return (vd->vdev_queue.vq_lastoffset);
-}
-
-void
-vdev_queue_register_lastoffset(vdev_t *vd, zio_t *zio)
-{
-	vd->vdev_queue.vq_lastoffset = zio->io_offset + zio->io_size;
+	return (vd->vdev_queue.vq_last_offset);
 }
 
 #if defined(_KERNEL) && defined(HAVE_SPL)

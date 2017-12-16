@@ -60,6 +60,7 @@
 #include <sys/vtoc.h>
 #include <sys/dktp/fdisk.h>
 #include <sys/efi_partition.h>
+#include <thread_pool.h>
 #include <sys/vdev_impl.h>
 #include <blkid/blkid.h>
 #include "libzfs.h"
@@ -309,7 +310,7 @@ zpool_label_disk_wait(char *path, int timeout_ms)
 		dev = udev_device_new_from_subsystem_sysname(udev,
 		    "block", sysname);
 		if ((dev != NULL) && udev_device_is_ready(dev)) {
-			struct udev_list_entry *links, *link;
+			struct udev_list_entry *links, *link = NULL;
 
 			ret = 0;
 			links = udev_device_get_devlinks_list_entry(dev);
@@ -1388,7 +1389,7 @@ typedef struct rdsk_node {
 	nvlist_t *rn_config;		/* Label config */
 	avl_tree_t *rn_avl;
 	avl_node_t rn_node;
-	kmutex_t *rn_lock;
+	pthread_mutex_t *rn_lock;
 	boolean_t rn_labelpaths;
 } rdsk_node_t;
 
@@ -1603,14 +1604,14 @@ zpool_open_func(void *arg)
 			slice->rn_hdl = hdl;
 			slice->rn_order = IMPORT_ORDER_PREFERRED_1;
 			slice->rn_labelpaths = B_FALSE;
-			mutex_enter(rn->rn_lock);
+			pthread_mutex_lock(rn->rn_lock);
 			if (avl_find(rn->rn_avl, slice, &where)) {
-			mutex_exit(rn->rn_lock);
+			pthread_mutex_unlock(rn->rn_lock);
 				free(slice->rn_name);
 				free(slice);
 			} else {
 				avl_insert(rn->rn_avl, slice, where);
-				mutex_exit(rn->rn_lock);
+				pthread_mutex_unlock(rn->rn_lock);
 				zpool_open_func(slice);
 			}
 		}
@@ -1629,14 +1630,14 @@ zpool_open_func(void *arg)
 			slice->rn_hdl = hdl;
 			slice->rn_order = IMPORT_ORDER_PREFERRED_2;
 			slice->rn_labelpaths = B_FALSE;
-			mutex_enter(rn->rn_lock);
+			pthread_mutex_lock(rn->rn_lock);
 			if (avl_find(rn->rn_avl, slice, &where)) {
-				mutex_exit(rn->rn_lock);
+				pthread_mutex_unlock(rn->rn_lock);
 				free(slice->rn_name);
 				free(slice);
 			} else {
 				avl_insert(rn->rn_avl, slice, where);
-				mutex_exit(rn->rn_lock);
+				pthread_mutex_unlock(rn->rn_lock);
 				zpool_open_func(slice);
 			}
 		}
@@ -1679,7 +1680,7 @@ zpool_clear_label(int fd)
  * Scan a list of directories for zfs devices.
  */
 static int
-zpool_find_import_scan(libzfs_handle_t *hdl, kmutex_t *lock,
+zpool_find_import_scan(libzfs_handle_t *hdl, pthread_mutex_t *lock,
     avl_tree_t **slice_cache, char **dir, int dirs)
 {
 	avl_tree_t *cache;
@@ -1735,9 +1736,9 @@ zpool_find_import_scan(libzfs_handle_t *hdl, kmutex_t *lock,
 			slice->rn_hdl = hdl;
 			slice->rn_order = i + IMPORT_ORDER_SCAN_OFFSET;
 			slice->rn_labelpaths = B_FALSE;
-			mutex_enter(lock);
+			pthread_mutex_lock(lock);
 			avl_add(cache, slice);
-			mutex_exit(lock);
+			pthread_mutex_unlock(lock);
 		}
 
 		(void) closedir(dirp);
@@ -1761,7 +1762,7 @@ error:
  * Use libblkid to quickly enumerate all known zfs devices.
  */
 static int
-zpool_find_import_blkid(libzfs_handle_t *hdl, kmutex_t *lock,
+zpool_find_import_blkid(libzfs_handle_t *hdl, pthread_mutex_t *lock,
     avl_tree_t **slice_cache)
 {
 	rdsk_node_t *slice;
@@ -1815,14 +1816,14 @@ zpool_find_import_blkid(libzfs_handle_t *hdl, kmutex_t *lock,
 		else
 			slice->rn_order = IMPORT_ORDER_DEFAULT;
 
-		mutex_enter(lock);
+		pthread_mutex_lock(lock);
 		if (avl_find(*slice_cache, slice, &where)) {
 			free(slice->rn_name);
 			free(slice);
 		} else {
 			avl_insert(*slice_cache, slice, where);
 		}
-		mutex_exit(lock);
+		pthread_mutex_unlock(lock);
 	}
 
 	blkid_dev_iterate_end(iter);
@@ -1860,14 +1861,14 @@ zpool_find_import_impl(libzfs_handle_t *hdl, importargs_t *iarg)
 	vdev_entry_t *ve, *venext;
 	config_entry_t *ce, *cenext;
 	name_entry_t *ne, *nenext;
-	kmutex_t lock;
+	pthread_mutex_t lock;
 	avl_tree_t *cache;
 	rdsk_node_t *slice;
 	void *cookie;
-	taskq_t *t;
+	tpool_t *t;
 
 	verify(iarg->poolname == NULL || iarg->guid == 0);
-	mutex_init(&lock, NULL, MUTEX_DEFAULT, NULL);
+	pthread_mutex_init(&lock, NULL);
 
 	/*
 	 * Locate pool member vdevs using libblkid or by directory scanning.
@@ -1896,15 +1897,13 @@ zpool_find_import_impl(libzfs_handle_t *hdl, importargs_t *iarg)
 	 * validating labels, a large number of threads can be used due to
 	 * minimal contention.
 	 */
-	t = taskq_create("z_import", 2 * boot_ncpus, defclsyspri,
-	    2 * boot_ncpus, INT_MAX, TASKQ_PREPOPULATE);
-
+	t = tpool_create(1, 2 * sysconf(_SC_NPROCESSORS_ONLN), 0, NULL);
 	for (slice = avl_first(cache); slice;
 	    (slice = avl_walk(cache, slice, AVL_AFTER)))
-		(void) taskq_dispatch(t, zpool_open_func, slice, TQ_SLEEP);
+		(void) tpool_dispatch(t, zpool_open_func, slice);
 
-	taskq_wait(t);
-	taskq_destroy(t);
+	tpool_wait(t);
+	tpool_destroy(t);
 
 	/*
 	 * Process the cache filtering out any entries which are not
@@ -1974,7 +1973,7 @@ zpool_find_import_impl(libzfs_handle_t *hdl, importargs_t *iarg)
 	}
 	avl_destroy(cache);
 	free(cache);
-	mutex_destroy(&lock);
+	pthread_mutex_destroy(&lock);
 
 	ret = get_configs(hdl, &pools, iarg->can_be_active);
 
@@ -2166,6 +2165,80 @@ zpool_search_import(libzfs_handle_t *hdl, importargs_t *import)
 	return (zpool_find_import_impl(hdl, import));
 }
 
+static boolean_t
+pool_match(nvlist_t *cfg, char *tgt)
+{
+	uint64_t v, guid = strtoull(tgt, NULL, 0);
+	char *s;
+
+	if (guid != 0) {
+		if (nvlist_lookup_uint64(cfg, ZPOOL_CONFIG_POOL_GUID, &v) == 0)
+			return (v == guid);
+	} else {
+		if (nvlist_lookup_string(cfg, ZPOOL_CONFIG_POOL_NAME, &s) == 0)
+			return (strcmp(s, tgt) == 0);
+	}
+	return (B_FALSE);
+}
+
+int
+zpool_tryimport(libzfs_handle_t *hdl, char *target, nvlist_t **configp,
+    importargs_t *args)
+{
+	nvlist_t *pools;
+	nvlist_t *match = NULL;
+	nvlist_t *config = NULL;
+	char *name = NULL, *sepp = NULL;
+	char sep = '\0';
+	int count = 0;
+	char *targetdup = strdup(target);
+
+	*configp = NULL;
+
+	if ((sepp = strpbrk(targetdup, "/@")) != NULL) {
+		sep = *sepp;
+		*sepp = '\0';
+	}
+
+	pools = zpool_search_import(hdl, args);
+
+	if (pools != NULL) {
+		nvpair_t *elem = NULL;
+		while ((elem = nvlist_next_nvpair(pools, elem)) != NULL) {
+			VERIFY0(nvpair_value_nvlist(elem, &config));
+			if (pool_match(config, targetdup)) {
+				count++;
+				if (match != NULL) {
+					/* multiple matches found */
+					continue;
+				} else {
+					match = config;
+					name = nvpair_name(elem);
+				}
+			}
+		}
+	}
+
+	if (count == 0) {
+		(void) zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
+		    "no pools found"));
+		free(targetdup);
+		return (ENOENT);
+	}
+
+	if (count > 1) {
+		(void) zfs_error_aux(hdl, dgettext(TEXT_DOMAIN,
+		    "%d pools found, use pool GUID\n"), count);
+		free(targetdup);
+		return (EINVAL);
+	}
+
+	*configp = match;
+	free(targetdup);
+
+	return (0);
+}
+
 boolean_t
 find_guid(nvlist_t *nv, uint64_t guid)
 {
@@ -2223,7 +2296,7 @@ find_aux(zpool_handle_t *zhp, void *data)
 
 /*
  * Determines if the pool is in use.  If so, it returns true and the state of
- * the pool as well as the name of the pool.  Both strings are allocated and
+ * the pool as well as the name of the pool.  Name string is allocated and
  * must be freed by the caller.
  */
 int

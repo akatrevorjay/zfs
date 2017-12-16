@@ -204,8 +204,11 @@ zfs_iter_bookmarks(zfs_handle_t *zhp, zfs_iter_f func, void *data)
 		bmark_name = nvpair_name(pair);
 		bmark_props = fnvpair_value_nvlist(pair);
 
-		(void) snprintf(name, sizeof (name), "%s#%s", zhp->zfs_name,
-		    bmark_name);
+		if (snprintf(name, sizeof (name), "%s#%s", zhp->zfs_name,
+		    bmark_name) >= sizeof (name)) {
+			err = EINVAL;
+			goto out;
+		}
 
 		nzhp = make_bookmark_handle(zhp, name, bmark_props);
 		if (nzhp == NULL)
@@ -425,10 +428,10 @@ zfs_iter_children(zfs_handle_t *zhp, zfs_iter_f func, void *data)
 {
 	int ret;
 
-	if ((ret = zfs_iter_filesystems(zhp, func, data)) != 0)
+	if ((ret = zfs_iter_snapshots(zhp, B_FALSE, func, data)) != 0)
 		return (ret);
 
-	return (zfs_iter_snapshots(zhp, B_FALSE, func, data));
+	return (zfs_iter_filesystems(zhp, func, data));
 }
 
 
