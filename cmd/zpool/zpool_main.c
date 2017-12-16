@@ -52,6 +52,7 @@
 #include <sys/fs/zfs.h>
 #include <sys/stat.h>
 #include <sys/systeminfo.h>
+#include <sys/sysmacros.h>
 #include <sys/fm/fs/zfs.h>
 #include <sys/fm/util.h>
 #include <sys/fm/protocol.h>
@@ -5970,6 +5971,32 @@ trim_callback(zpool_handle_t *zhp, void *data)
 	return (err != 0);
 }
 
+typedef struct trim_cbdata {
+	boolean_t	cb_start;
+	uint64_t	cb_rate;
+	boolean_t	cb_fulltrim;
+} trim_cbdata_t;
+
+int
+trim_callback(zpool_handle_t *zhp, void *data)
+{
+	trim_cbdata_t *cb = data;
+	int err;
+
+	/*
+	 * Ignore faulted pools.
+	 */
+	if (zpool_get_state(zhp) == POOL_STATE_UNAVAIL) {
+		(void) fprintf(stderr, gettext("cannot trim '%s': pool is "
+		    "currently unavailable\n"), zpool_get_name(zhp));
+		return (1);
+	}
+
+	err = zpool_trim(zhp, cb->cb_start, cb->cb_rate, cb->cb_fulltrim);
+
+	return (err != 0);
+}
+
 /*
  * zpool scrub [-s | -p] <pool> ...
  *
@@ -6220,6 +6247,58 @@ print_scan_status(pool_scan_stat_t *ps)
 		}
 	} else {
 		(void) printf(gettext("\n"));
+	}
+}
+
+static void
+print_trim_status(uint64_t trim_prog, uint64_t total_size, uint64_t rate,
+    uint64_t start_time_u64, uint64_t end_time_u64)
+{
+	time_t start_time = start_time_u64, end_time = end_time_u64;
+	char *buf;
+
+	if (trim_prog != 0 && trim_prog != total_size) {
+		buf = ctime(&start_time);
+		buf[strlen(buf) - 1] = '\0';	/* strip trailing newline */
+		if (rate != 0) {
+			char rate_str[32];
+			zfs_nicenum(rate, rate_str, sizeof (rate_str));
+			(void) printf("  trim: %.02f%%\tstarted: %s\t"
+			    "(rate limit: %s/s)\n", MIN((((double)trim_prog) /
+			    total_size) * 100, 100), buf, rate_str);
+		} else {
+			(void) printf("  trim: %.02f%%\tstarted: %s\t"
+			    "(rate limit: none)\n", MIN((((double)trim_prog) /
+			    total_size) * 100, 100), buf);
+		}
+	} else {
+		if (start_time != 0) {
+			/*
+			 * Non-zero start time means we were run at some point
+			 * in the past.
+			 */
+			if (end_time != 0) {
+				/* Non-zero end time means we completed */
+				time_t diff = end_time - start_time;
+				int hrs, mins;
+
+				buf = ctime(&end_time);
+				buf[strlen(buf) - 1] = '\0';
+				hrs = diff / 3600;
+				mins = (diff % 3600) / 60;
+				(void) printf(gettext("  trim: completed on %s "
+				    "(after %dh%dm)\n"), buf, hrs, mins);
+			} else {
+				buf = ctime(&start_time);
+				buf[strlen(buf) - 1] = '\0';
+				/* Zero end time means we were interrupted */
+				(void) printf(gettext("  trim: interrupted\t"
+				    "(started %s)\n"), buf);
+			}
+		} else {
+			/* trim was never run */
+			(void) printf(gettext("  trim: none requested\n"));
+		}
 	}
 }
 

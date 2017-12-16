@@ -751,7 +751,7 @@ again:
 	/* trim I/Os have no single meaningful offset */
 	if (zio->io_priority != ZIO_PRIORITY_AUTO_TRIM ||
 	    zio->io_priority != ZIO_PRIORITY_MAN_TRIM)
-		vq->vq_last_offset = zio->io_offset + zio->io_size;
+		vq->vq_last_offset = zio->io_offset;
 
 	return (zio);
 }

@@ -7605,6 +7605,7 @@ spa_min_trim_rate(spa_t *spa)
 	return (smallest_ms_sz / 1000);
 }
 
+
 #if defined(_KERNEL) && defined(HAVE_SPL)
 /* state manipulation functions */
 EXPORT_SYMBOL(spa_open);

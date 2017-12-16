@@ -820,6 +820,13 @@ extern void spa_get_trim_prog(spa_t *spa, uint64_t *prog, uint64_t *rate,
     uint64_t *start_time, uint64_t *stop_time);
 extern void spa_trim_stop_wait(spa_t *spa);
 
+/* trimming */
+extern void spa_man_trim(spa_t *spa, uint64_t rate, boolean_t fulltrim);
+extern void spa_man_trim_stop(spa_t *spa);
+extern void spa_get_trim_prog(spa_t *spa, uint64_t *prog, uint64_t *rate,
+    uint64_t *start_time, uint64_t *stop_time);
+extern void spa_trim_stop_wait(spa_t *spa);
+
 /* spa syncing */
 extern void spa_sync(spa_t *spa, uint64_t txg); /* only for DMU use */
 extern void spa_sync_allpools(void);
@@ -1084,6 +1091,11 @@ extern void spa_configfile_set(spa_t *, nvlist_t *, boolean_t);
 /* asynchronous event notification */
 extern void spa_event_notify(spa_t *spa, vdev_t *vdev, nvlist_t *hist_nvl,
     const char *name);
+
+/* TRIM/UNMAP kstat update */
+extern void spa_trimstats_update(spa_t *spa, uint64_t extents, uint64_t bytes,
+    uint64_t extents_skipped, uint64_t bytes_skipped);
+extern void spa_trimstats_auto_slow_incr(spa_t *spa);
 
 /* TRIM/UNMAP kstat update */
 extern void spa_trimstats_update(spa_t *spa, uint64_t extents, uint64_t bytes,

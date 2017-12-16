@@ -567,13 +567,14 @@ __vdev_disk_physio(struct block_device *bdev, zio_t *zio,
 
 retry:
 	dr = vdev_disk_dio_alloc(bio_count);
+
 	if (dr == NULL)
 		return (SET_ERROR(ENOMEM));
 
+	dr->dr_zio = zio;
+
 	if (zio && !(zio->io_flags & (ZIO_FLAG_IO_RETRY | ZIO_FLAG_TRYHARD)))
 		bio_set_flags_failfast(bdev, &flags);
-
-	dr->dr_zio = zio;
 
 	/*
 	 * When the IO size exceeds the maximum bio size for the request
