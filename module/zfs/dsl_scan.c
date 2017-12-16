@@ -24,6 +24,7 @@
  * Copyright 2016 Gary Mills
  * Copyright (c) 2017 Datto Inc.
  * Copyright 2017 Joyent, Inc.
+ * Copyright 2017 Nexenta Systems, Inc. All rights reserved.
  */
 
 #include <sys/dsl_scan.h>
@@ -3246,6 +3247,21 @@ dsl_scan_sync(dsl_pool_t *dp, dmu_tx_t *tx)
 		scn->scn_prefetch_stop = B_TRUE;
 		cv_broadcast(&spa->spa_scrub_io_cv);
 		mutex_exit(&dp->dp_spa->spa_scrub_lock);
+}
+
+/*
+ * This will start a new scan, or restart an existing one.
+ */
+void
+dsl_resilver_restart(dsl_pool_t *dp, uint64_t txg)
+{
+	/* Stop any ongoing TRIMs */
+	spa_man_trim_stop(dp->dp_spa);
+
+	if (txg == 0) {
+		dmu_tx_t *tx;
+		tx = dmu_tx_create_dd(dp->dp_mos_dir);
+		VERIFY(0 == dmu_tx_assign(tx, TXG_WAIT));
 
 		taskq_wait_id(dp->dp_sync_taskq, prefetch_tqid);
 		(void) zio_wait(scn->scn_zio_root);
